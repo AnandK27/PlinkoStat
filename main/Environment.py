@@ -17,8 +17,11 @@ from Parameters import *
 #from pymunk.shape_filter import ShapeFilter
 
 class Environment:
-    def __init__(self, ballRadius):
-        self.ballRadius = ballRadius  
+    def __init__(self, ballRadius, dropSlot = 3, pinLevels = 9):
+        self.ballRadius = ballRadius
+        Env.dropSlot = dropSlot
+        Env.ballReleaseX = Env.worldX + Env.boundaryThickness + Env.gap*(Env.dropSlot - 0.5) - 0.5
+        Env.pinStartY =  max(int(Env.pinStartY + (10 -pinLevels)* Env.gap), Env.pinStartY)
         pymunk.pygame_util.positive_y_is_up = False #NOTE: Pymunk physics coordinates normally start from the lower right-hand corner of the screen. This line makes it the opposite (coordinates 0,0 begin at the top left corner of the screen)
         self.screen = None
         self.draw_options = None       
@@ -30,17 +33,7 @@ class Environment:
         self.UNDETERMINED = -1
         self.highFriction = 20   
         self.iterations = 20
-        if ballRadius == BallSizes.SMALL:
-            self.maxBalls = Env.maxBallsSmall
-        else:
-            if ballRadius == BallSizes.MEDIUM:
-                time.sleep(5)
-                self.maxBalls = Env.maxBallsMedium
-            else:
-                if ballRadius == BallSizes.LARGE:
-                    self.maxBalls = Env.maxBallsLarge                
-                else:
-                    self.maxBalls = Env.maxBallsLarge
+        self.maxBalls = Env.numBalls
 
     def initialize(self):
         self.space = pymunk.Space()
@@ -55,7 +48,7 @@ class Environment:
         pygame.init()
         pygame.mixer.quit()#disable sound output that causes annoying sound effects if any other external music player is playing
         self.screen = pygame.display.set_mode((Env.screenWidth, Env.screenHeight), self.display_flags)
-        self.font = pygame.font.SysFont("arial", 14)
+        self.font = pygame.font.SysFont("poppins", 14)
         #width, height = self.screen.get_size()
         self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
         self.draw_options.constraint_color = 140, 140, 140              
@@ -70,21 +63,27 @@ class Environment:
     
     def createSlots(self):
         slotY = Env.screenHeight - Env.slotHeight/2 - Env.boundaryThickness
-        slotStartX = int(Env.worldX+Env.boundaryThickness+Env.gapBetweenSlots+Env.slotThickness/2)
-        for slotX in range(slotStartX, Env.screenWidth, Env.gapBetweenSlots):
+        slotStartX = int(Env.worldX + Env.boundaryThickness + Env.gap)
+        for slotX in range(slotStartX, Env.screenWidth, Env.gap):
             self.createStaticBox(slotX, slotY, Env.slotThickness, Env.slotHeight, Env.slotColor)#top boundary
     
     def createPins(self):
-        slotStartY = Env.screenHeight - Env.slotHeight - Env.boundaryThickness
-        slotStartY = slotStartY - Env.boundaryThickness
+        # slotStartY = Env.screenHeight - Env.slotHeight - Env.boundaryThickness
+        # slotStartY = slotStartY - Env.boundaryThickness
+        pinEndY = Env.pinEndY
         pinStartY = int(Env.worldY + Env.boundaryThickness + Env.pinStartY)
-        pinStartX = int(Env.worldX + Env.boundaryThickness + Env.gapBetweenPins)
-        pinIncr = int(Env.gapBetweenPins / 2)
+        pinStartX = int(Env.worldX + Env.boundaryThickness + Env.gap / 2)
+        pinIncr = int(Env.gap / 2)
         alternate = False
-        for pinY in range(pinStartY, int(slotStartY), Env.gapBetweenPins):                    
-            if alternate: pinStartX = pinStartX + pinIncr; alternate = False
-            else: pinStartX = pinStartX - pinIncr; alternate = True            
-            for pinX in range(pinStartX, Env.screenWidth, Env.gapBetweenPins):
+        for pinY in range(pinStartY, int(pinEndY), Env.gap):                    
+            if alternate: 
+                pinStartX = pinStartX + pinIncr
+                alternate = False
+            else: 
+                pinStartX = pinStartX - pinIncr
+                alternate = True
+
+            for pinX in range(pinStartX, int(pinStartX + Env.gap * Env.numPins - (1-alternate)*Env.gap), Env.gap):
                 self.createStaticSphere(pinX, pinY, Env.pinRadius, Env.pinColor)#top boundary        
         
     def createStaticBox(self, x, y, wd, ht, colour):
