@@ -25,7 +25,7 @@ if __name__ == '__main__':
     from Environment import *
     
     noErrors = True
-    sim = Environment(Env.ballSize)    
+    sim = Environment()    
     
     try:
         sim.initialize()
