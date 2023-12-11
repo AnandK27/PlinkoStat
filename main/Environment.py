@@ -13,15 +13,17 @@ from pygame.color import *
 from pygame.locals import *
 from pygame.locals import *
 from Parameters import *
+import math
 
-#from pymunk.shape_filter import ShapeFilter
+from pymunk.shape_filter import ShapeFilter
 
 class Environment:
     def __init__(self):
         pass
 
-    def initialize(self, dropSlot = 3, pinLevels = 4, numBalls = 100, values = [100, 500, 1000, 0, 10000, 0, 1000, 500, 100], timeScale = 1):
+    def initialize(self, dropSlot = 13, pinLevels = 13, numBalls = 500, values = [100, 500, 1000, 0, 10000, 0, 1000, 500, 100], timeScale = 1, binDisplay = True):
         self.ballRadius = Env.ballSize
+        self.pinLevels = pinLevels
         Env.numBalls = numBalls
         self.timeScale = timeScale
         pymunk.pygame_util.positive_y_is_up = False #NOTE: Pymunk physics coordinates normally start from the lower right-hand corner of the screen. This line makes it the opposite (coordinates 0,0 begin at the top left corner of the screen)
@@ -31,6 +33,7 @@ class Environment:
         self.boundaryObjects = []
         self.worldObjects = []
         self.ballObjects = []
+        self.bins = []
         self.display_flags = 0          
         self.statsPos = Vec2d(15, 10)
         self.UNDETERMINED = -1
@@ -40,8 +43,8 @@ class Environment:
         if not hasattr(self, 'gamePaused'):
             self.gamePaused = False
         Env.dropSlot = dropSlot
-        Env.ballReleaseX = Env.worldX + Env.boundaryThickness + Env.gap*(Env.dropSlot - 0.5) - 0.5
-        Env.pinStartY =  max(int(0.15 * Env.screenHeight + (10 -pinLevels)* Env.gap), 0.15 * Env.screenHeight)
+        Env.pinStartY =  max(int(Env.pinEndY - (self.pinLevels)* Env.pinHeightGap), int(Env.pinEndY - 13 * Env.pinHeightGap))
+        Env.ballReleaseX = Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(Env.dropSlot - 0.5) - 0.5
         self.count = [0] * Env.numPins
         self.values = values
         self.space = pymunk.Space()
@@ -49,9 +52,13 @@ class Environment:
         self.fps = 60 #frames per second
         #self.space.damping = 0.999 
         self.infoString = [""] * (Env.numPins)
+        self.makeBinomialCombs()
         self.createOuterBoundary()
         self.createSlots()
-        self.createPins()        
+        self.createPins()
+        self.binDisplay = binDisplay
+
+      
         
         pygame.init()
         pygame.mixer.quit()#disable sound output that causes annoying sound effects if any other external music player is playing
@@ -71,8 +78,8 @@ class Environment:
     
     def createSlots(self):
         slotY = Env.screenHeight - Env.slotHeight/2 - Env.boundaryThickness
-        slotStartX = int(Env.worldX + Env.boundaryThickness + Env.gap)
-        for slotX in range(slotStartX, Env.screenWidth, Env.gap):
+        slotStartX = int(Env.worldX + Env.boundaryThickness + Env.pinWidthGap)
+        for slotX in range(slotStartX, Env.screenWidth, Env.pinWidthGap):
             self.createStaticBox(slotX, slotY, Env.slotThickness, Env.slotHeight, Env.slotColor)
     
     def createPins(self):
@@ -80,10 +87,10 @@ class Environment:
         # slotStartY = slotStartY - Env.boundaryThickness
         pinEndY = Env.pinEndY
         pinStartY = int(Env.worldY + Env.boundaryThickness + Env.pinStartY)
-        pinStartX = int(Env.worldX + Env.boundaryThickness + Env.gap / 2)
-        pinIncr = int(Env.gap / 2)
+        pinStartX = int(Env.worldX + Env.boundaryThickness + Env.pinWidthGap/ 2)
+        pinIncr = int(Env.pinWidthGap / 2)
         alternate = False
-        for pinY in range(pinStartY, int(pinEndY), Env.gap):                    
+        for pinY in range(pinStartY, int(pinEndY), Env.pinHeightGap):                    
             if alternate: 
                 pinStartX = pinStartX + pinIncr
                 alternate = False
@@ -91,16 +98,23 @@ class Environment:
                 pinStartX = pinStartX - pinIncr
                 alternate = True
 
-            for pinX in range(pinStartX, int(pinStartX + Env.gap * Env.numPins - (1-alternate)*Env.gap), Env.gap):
-                self.createStaticSphere(pinX, pinY, Env.pinRadius, Env.pinColor)#top boundary        
+            for pinX in range(pinStartX, int(pinStartX + Env.pinWidthGap * Env.numPins - (1-alternate)*Env.pinWidthGap), Env.pinWidthGap):
+                self.createStaticSphere(pinX, pinY, Env.pinRadius, Env.pinColor)#top boundary
+
+    # def createBins(self):
+    #     binStartX = int(Env.worldX + Env.boundaryThickness)
+    #     binEndX = int(Env.screenHeight - Env.boundaryThickness- Env.pinWidthGap)
+    #     for i, binX in enumerate(range(binStartX, binEndX, Env.pinWidthGap)):
+    #         self.createBin(binX, Env.screenHeight -( 0.9 * Env.slotHeight * self.binHeight[i])/2 - Env.boundaryThickness, Env.pinWidthGap - 2, 0.9 * Env.slotHeight * self.binHeight[i], [144, 238, 144, 10])                    
+                
         
-    def createStaticBox(self, x, y, wd, ht, colour):
+    def createStaticBox(self, x, y, wd, ht, color):
         body = pymunk.Body(body_type = pymunk.Body.KINEMATIC)
         body.position = Vec2d(x, y)
         body.width = wd
         body.height = ht
         shape = pymunk.Poly.create_box(body, (wd, ht))
-        shape.color = colour
+        shape.color = color
         shape.friction = 0
         shape.elasticity = 0.5
         self.space.add(body, shape)
@@ -113,7 +127,7 @@ class Environment:
         #x = random.randint(115, 350)
         body.position = xPosition, yPosition
         shape = pymunk.Circle(body, radius, (0, 0))
-        shape.elasticity = 0.5  #range 0 to 9
+        shape.elasticity = 0.45 + (random.random()-0.5)*0.1  #range 0 to 9
         shape.friction = 0
         shape.color = color
         self.space.add(body, shape)
@@ -125,27 +139,58 @@ class Environment:
         body = pymunk.Body(sphereMass, sphereInertia, body_type=pymunk.Body.DYNAMIC)
         body.position = xPosition, yPosition
         shape = pymunk.Circle(body, radius, (0, 0))
-        shape.elasticity = 0.5
+        shape.elasticity = 0.65 + (random.random()-0.5)*0.1  #range 0 to 9
         shape.friction = 0
         shape.color = color
+        shape.filter = ShapeFilter(group = 1)
         self.space.add(body, shape)
-        self.ballObjects.append(shape)                           
+        self.ballObjects.append(shape)
+
+    def createBin(self, x, y, wd, ht, color):
+        rect_surf = pygame.Surface(pygame.Rect(x, y, wd, ht).size, pygame.SRCALPHA)
+        pygame.draw.rect(rect_surf, color, rect_surf.get_rect())
+        self.screen.blit(rect_surf, (x, y))
+
+    def makeBinomialCombs(self):
+        combs = [math.comb(self.pinLevels - 1,i) for i in range(self.pinLevels)]
+        self.binHeight = [0.0] * (Env.numPins - 1)
+        drop = Env.dropSlot - self.pinLevels//2 - 1
+        for i, x in enumerate(combs):
+            if drop + i >= 0 and drop + i < Env.numPins - 1:
+                self.binHeight[drop  + i] += x
+            elif Env.dropSlot - self.pinLevels//2 + i < 0:
+                self.binHeight[-(drop + i) - 1] += x
+            elif Env.dropSlot - self.pinLevels//2 + i >= Env.numPins - 1:
+                self.binHeight[2*(Env.numPins -1)  - (drop + i) - 1] += x
+        self.binHeight = [float(i)/max(self.binHeight) for i in self.binHeight]
+        pass
+
 
     def draw(self):        
         #self.screen.fill(THECOLORS["black"])# Clear screen
         self.screen.fill((30, 30, 30))# Clear screen  
         self.space.debug_draw(self.draw_options)# Draw space
-        self.displayStats();        
+        self.displayStats()
+        self.displayBins()        
         pygame.display.flip()#flip the display buffer
+
+    def displayBins(self):
+        if self.binDisplay == False:
+            return
+        binStartX = int(Env.worldX + Env.boundaryThickness)
+        binEndX = int(Env.screenHeight - Env.boundaryThickness- Env.pinWidthGap)
+        for i, binX in enumerate(range(binStartX, binEndX, Env.pinWidthGap)):
+            self.createBin(binX, Env.screenHeight -(0.9 * Env.slotHeight * self.binHeight[i]) - Env.boundaryThickness, Env.pinWidthGap, 0.9 * Env.slotHeight * self.binHeight[i], [144, 238, 144, 100])
+        pass
 
     def displayStats(self):
         self.screen.blit(self.font.render(self.infoString[0], 1, THECOLORS["gray"]), self.statsPos)
         for i in range(1,len(self.infoString)):
-            self.screen.blit(self.font.render(self.infoString[i], 1, THECOLORS["gray"]), self.statsPos+((Env.worldX + Env.boundaryThickness + Env.gap*(i-1)) , Env.screenHeight - Env.slotHeight - Env.boundaryThickness))
+            self.screen.blit(self.font.render(self.infoString[i], 1, THECOLORS["gray"]), self.statsPos+((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-1)) , Env.screenHeight - Env.slotHeight - Env.boundaryThickness))
             if i-1 < len(self.values):
                 text = self.font.render(str(self.values[i-1]), 1, THECOLORS["lightblue"]) 
                 text = pygame.transform.rotate(text, 90)
-                self.screen.blit(text, self.statsPos+((Env.worldX + Env.boundaryThickness + Env.gap*(i-1.25)) , Env.screenHeight - Env.slotHeight - Env.boundaryThickness + 40))
+                self.screen.blit(text, self.statsPos+((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-1.25)) , Env.screenHeight - Env.slotHeight - Env.boundaryThickness + 40))
 
     def runWorld(self): 
         clock = pygame.time.Clock()  
@@ -187,7 +232,7 @@ class Environment:
                 self.count = [0] * Env.numPins
                 for i in self.ballObjects:
                     if i.body.position.y > Env.screenHeight - Env.slotHeight - Env.boundaryThickness:
-                        self.count[int(i.body.position.x/Env.gap)] += 1
+                        self.count[int(i.body.position.x/Env.pinWidthGap)] += 1
                 self.infoString[1:] = [str(self.count[i]) for i in range(0,len(self.count))]
             self.draw()
             
