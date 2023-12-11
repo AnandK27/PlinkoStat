@@ -18,11 +18,16 @@ import numpy as np
 
 from pymunk.shape_filter import ShapeFilter
 
+
 class Environment:
     def __init__(self):
         pass
 
-    def initialize(self, dropSlot = 13, pinLevels = 13, numBalls = 500, values = random.choices([100, 500, 1000, 0, 10000, 0, 1000, 500, 100], k=Env.numPins -1), timeScale = 1, binDisplay = True):
+    def initialize(self, dropSlot = 13, pinLevels = 13, numBalls = 500, values = random.choices([100, 500, 1000, 0, 10000, 0, 1000, 500, 100], k=Env.numPins -1), timeScale = 1, binDisplay = True, dark_theme = True):
+        if dark_theme:
+            self.Theme = DarkTheme
+        else:
+            self.Theme = LightTheme
         self.ballRadius = Env.ballSize
         self.pinLevels = pinLevels
         Env.numBalls = numBalls
@@ -34,6 +39,7 @@ class Environment:
         self.boundaryObjects = []
         self.worldObjects = []
         self.ballObjects = []
+        self.pinObjects = []
         self.bins = []
         self.display_flags = 0          
         self.statsPos = Vec2d(15, 10)
@@ -62,6 +68,7 @@ class Environment:
         print(self.expectedValues[Env.dropSlot -1 ])
         print(np.argmax(self.expectedValues))
         self.sampleExpectedValue = 0
+        print(self.Theme.binColor)
 
       
         
@@ -74,18 +81,20 @@ class Environment:
         self.draw_options.constraint_color = 140, 140, 140              
         #self.draw_options.flags = pymunk.SpaceDebugDrawOptions.DRAW_SHAPES        
         self.draw_options.flags ^= pymunk.SpaceDebugDrawOptions.DRAW_COLLISION_POINTS #turn off the collision points.
+        # Stops drawing the constraints.
+        self.draw_options.flags ^= pymunk.SpaceDebugDrawOptions.DRAW_CONSTRAINTS
         
     def createOuterBoundary(self):              
-        self.createStaticBox(Env.worldX+Env.screenWidth/2, Env.worldY+Env.boundaryThickness/2, Env.screenWidth, Env.boundaryThickness, Env.boundaryColor)#top boundary
-        self.createStaticBox(Env.worldX+Env.screenWidth/2, Env.worldY+Env.screenHeight-Env.boundaryThickness/2, Env.screenWidth, Env.boundaryThickness, Env.boundaryColor)#bottom boundary
-        self.createStaticBox(Env.worldX+Env.boundaryThickness/2, Env.worldY+Env.screenHeight/2, Env.boundaryThickness, Env.screenHeight-(2*Env.boundaryThickness), Env.boundaryColor)#left boundary
-        self.createStaticBox(Env.worldX+Env.screenWidth-Env.boundaryThickness/2, Env.worldY+Env.screenHeight/2, Env.boundaryThickness, Env.screenHeight-(2*Env.boundaryThickness), Env.boundaryColor)#right boundary
+        self.createStaticBox(Env.worldX+Env.screenWidth/2, Env.worldY+Env.boundaryThickness/2, Env.screenWidth, Env.boundaryThickness, self.Theme.boundaryColor)#top boundary
+        self.createStaticBox(Env.worldX+Env.screenWidth/2, Env.worldY+Env.screenHeight-Env.boundaryThickness/2, Env.screenWidth, Env.boundaryThickness, self.Theme.boundaryColor)#bottom boundary
+        self.createStaticBox(Env.worldX+Env.boundaryThickness/2, Env.worldY+Env.screenHeight/2, Env.boundaryThickness, Env.screenHeight-(2*Env.boundaryThickness), self.Theme.boundaryColor)#left boundary
+        self.createStaticBox(Env.worldX+Env.screenWidth-Env.boundaryThickness/2, Env.worldY+Env.screenHeight/2, Env.boundaryThickness, Env.screenHeight-(2*Env.boundaryThickness), self.Theme.boundaryColor)#right boundary
     
     def createSlots(self):
         slotY = Env.screenHeight - Env.slotHeight/2 - Env.boundaryThickness
         slotStartX = int(Env.worldX + Env.boundaryThickness + Env.pinWidthGap)
         for slotX in range(slotStartX, Env.screenWidth, Env.pinWidthGap):
-            self.createStaticBox(slotX, slotY, Env.slotThickness, Env.slotHeight, Env.slotColor)
+            self.createStaticBox(slotX, slotY, Env.slotThickness, Env.slotHeight, self.Theme.slotColor)
     
     def createPins(self):
         # slotStartY = Env.screenHeight - Env.slotHeight - Env.boundaryThickness
@@ -104,7 +113,7 @@ class Environment:
                 alternate = True
 
             for pinX in range(pinStartX, int(pinStartX + Env.pinWidthGap * Env.numPins - (1-alternate)*Env.pinWidthGap), Env.pinWidthGap):
-                self.createStaticSphere(pinX, pinY, Env.pinRadius, Env.pinColor)#top boundary        
+                self.createStaticSphere(pinX, pinY, Env.pinRadius, self.Theme.pinColor)#top boundary        
                 
         
     def createStaticBox(self, x, y, wd, ht, color):
@@ -117,7 +126,7 @@ class Environment:
         shape.friction = 0
         shape.elasticity = 0.5
         self.space.add(body, shape)
-        self.worldObjects.append(shape)  
+        self.worldObjects.append(shape) 
         
     def createStaticSphere(self, xPosition, yPosition, radius, color):
         sphereMass = 5000
@@ -130,7 +139,7 @@ class Environment:
         shape.friction = 0
         shape.color = color
         self.space.add(body, shape)
-        self.worldObjects.append(shape)
+        self.pinObjects.append(shape)
         
     def createDynamicBall(self, xPosition, yPosition, radius, color):
         sphereMass = 5000
@@ -149,6 +158,7 @@ class Environment:
         rect_surf = pygame.Surface(pygame.Rect(x, y, wd, ht).size, pygame.SRCALPHA)
         pygame.draw.rect(rect_surf, color, rect_surf.get_rect())
         self.screen.blit(rect_surf, (x, y))
+
 
     def makeBinomialCombs(self, dropSlot):
         combs = [math.comb(self.pinLevels - 1,i) for i in range(self.pinLevels)]
@@ -172,11 +182,37 @@ class Environment:
                 self.expectedValues[j] += self.values[i] * binHeight[i]
         pass
 
+    def drawBall(self):
+        for ball in self.ballObjects:
+            body = ball.body
+            v = body.position + ball.offset.cpvrotate(body.rotation_vector)
+            p = v
+            r = ball.radius
+            pygame.draw.circle(self.screen, self.Theme.ballColor, p, int(r))
+    
+    def drawPins(self):
+        for ball in self.pinObjects:
+            body = ball.body
+            v = body.position + ball.offset.cpvrotate(body.rotation_vector)
+            p = v
+            r = ball.radius
+            pygame.draw.circle(self.screen, self.Theme.pinColor, p, int(r))
+
+    def drawBoxes(self):
+        for poly in self.worldObjects:
+            body = poly.body
+            ps = [p.rotated(body.angle) + body.position for p in poly.get_vertices()]
+            ps.append(ps[0])
+            pygame.draw.polygon(self.screen, self.Theme.boundaryColor, ps)
+
 
     def draw(self):        
         #self.screen.fill(THECOLORS["black"])# Clear screen
-        self.screen.fill((30, 30, 30))# Clear screen  
-        self.space.debug_draw(self.draw_options)# Draw space
+        self.screen.fill(self.Theme.bgColor)# Clear screen
+        #self.space.debug_draw(self.draw_options)# Draw space
+        self.drawBall()
+        self.drawPins()
+        self.drawBoxes()
         self.displayStats()
         self.displayBins()        
         pygame.display.flip()#flip the display buffer
@@ -187,19 +223,19 @@ class Environment:
         binStartX = int(Env.worldX + Env.boundaryThickness)
         binEndX = int(Env.screenHeight - Env.boundaryThickness- Env.pinWidthGap)
         for i, binX in enumerate(range(binStartX, binEndX, Env.pinWidthGap)):
-            self.createBin(binX, Env.screenHeight -(0.9 * Env.slotHeight * self.binHeight[i]/max(self.binHeight)) - Env.boundaryThickness, Env.pinWidthGap, 0.9 * Env.slotHeight * self.binHeight[i]/max(self.binHeight), [144, 238, 144, 100])
+            self.createBin(binX, Env.screenHeight -(0.9 * Env.slotHeight * self.binHeight[i]/max(self.binHeight)) - Env.boundaryThickness, Env.pinWidthGap, 0.9 * Env.slotHeight * self.binHeight[i]/max(self.binHeight),self.Theme.binColor)
         pass
 
     def displayStats(self):
-        self.screen.blit(self.font.render(self.infoString[0], 1, THECOLORS["gray"]), self.statsPos)
-        self.screen.blit(self.font.render(f'Sample Expected Value: {self.sampleExpectedValue:.2f}' , 1, THECOLORS["gray"]), self.statsPos + (0, 20))
-        self.screen.blit(self.font.render(f'Expected Value: {self.expectedValues[Env.dropSlot -1 ]:.2f} | Best Slot: {np.argmax(self.expectedValues)}' , 1, THECOLORS["gray"]), self.statsPos + (0, 40))
+        self.screen.blit(self.font.render(self.infoString[0], 1, self.Theme.textColor), self.statsPos)
+        self.screen.blit(self.font.render(f'Sample Expected Value: {self.sampleExpectedValue:.2f}' , 1, self.Theme.textColor), self.statsPos + (0, 20))
+        self.screen.blit(self.font.render(f'Expected Value: {self.expectedValues[Env.dropSlot -1 ]:.2f} | Best Slot: {np.argmax(self.expectedValues)}' , 1, self.Theme.textColor), self.statsPos + (0, 40))
         for i in range(1,len(self.infoString)):
-            self.screen.blit(self.font.render(self.infoString[i], 1, THECOLORS["gray"]), self.statsPos+((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-1)) , Env.screenHeight - Env.slotHeight - Env.boundaryThickness))
-            if i-1 < len(self.values):
-                text = self.font.render(str(self.values[i-1]), 1, THECOLORS["lightblue"]) 
-                text = pygame.transform.rotate(text, 90)
-                self.screen.blit(text, self.statsPos+((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-1.25)) , Env.screenHeight - Env.slotHeight - Env.boundaryThickness + 40))
+            self.screen.blit(self.font.render(self.infoString[i], 1, self.Theme.textColor), ((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-0.5)) , Env.screenHeight - Env.slotHeight - Env.boundaryThickness))
+            text = self.font.render(str(self.values[i-1]), 1, self.Theme.textHighlightColor) 
+            text = pygame.transform.rotate(text, 90)
+            self.screen.blit(text, self.statsPos+((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-1.25)) , Env.screenHeight - Env.slotHeight - Env.boundaryThickness + 40))
+            self.screen.blit(self.font.render(f'{i}' , 1, self.Theme.textLightColor), ((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-0.5)) , Env.pinStartY + Env.boundaryThickness - 40))
 
     def runWorld(self): 
         clock = pygame.time.Clock()  
@@ -228,7 +264,7 @@ class Environment:
                 self.space.step(dt)
             #---Create new ball            
             if self.maxBalls > 0 and time.time() - self.prevTime > Env.ballCreationInterval_seconds/self.timeScale:
-                self.createDynamicBall(Env.ballReleaseX + random.random(), Env.ballReleaseY, self.ballRadius, Env.ballColor)
+                self.createDynamicBall(Env.ballReleaseX + random.random(), Env.ballReleaseY, self.ballRadius, self.Theme.ballColor)
                 self.maxBalls = self.maxBalls - 1
                 self.infoString[0] = "Number of balls: " + str(self.maxBalls)
                 self.prevTime = time.time()
