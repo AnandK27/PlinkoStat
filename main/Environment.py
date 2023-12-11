@@ -14,6 +14,7 @@ from pygame.locals import *
 from pygame.locals import *
 from Parameters import *
 import math
+import numpy as np
 
 from pymunk.shape_filter import ShapeFilter
 
@@ -21,7 +22,7 @@ class Environment:
     def __init__(self):
         pass
 
-    def initialize(self, dropSlot = 13, pinLevels = 13, numBalls = 500, values = [100, 500, 1000, 0, 10000, 0, 1000, 500, 100], timeScale = 1, binDisplay = True):
+    def initialize(self, dropSlot = 13, pinLevels = 13, numBalls = 500, values = random.choices([100, 500, 1000, 0, 10000, 0, 1000, 500, 100], k=Env.numPins -1), timeScale = 1, binDisplay = True):
         self.ballRadius = Env.ballSize
         self.pinLevels = pinLevels
         Env.numBalls = numBalls
@@ -51,12 +52,16 @@ class Environment:
         self.space.gravity = (0.0, 1900.0)
         self.fps = 60 #frames per second
         #self.space.damping = 0.999 
-        self.infoString = [""] * (Env.numPins)
-        self.makeBinomialCombs()
+        self.infoString = [""] * (Env.numPins - 1)
+        self.binHeight = self.makeBinomialCombs(Env.dropSlot)
+        self.calcExpectedValue()
         self.createOuterBoundary()
         self.createSlots()
         self.createPins()
         self.binDisplay = binDisplay
+        print(self.expectedValues[Env.dropSlot -1 ])
+        print(np.argmax(self.expectedValues))
+        self.sampleExpectedValue = 0
 
       
         
@@ -99,13 +104,7 @@ class Environment:
                 alternate = True
 
             for pinX in range(pinStartX, int(pinStartX + Env.pinWidthGap * Env.numPins - (1-alternate)*Env.pinWidthGap), Env.pinWidthGap):
-                self.createStaticSphere(pinX, pinY, Env.pinRadius, Env.pinColor)#top boundary
-
-    # def createBins(self):
-    #     binStartX = int(Env.worldX + Env.boundaryThickness)
-    #     binEndX = int(Env.screenHeight - Env.boundaryThickness- Env.pinWidthGap)
-    #     for i, binX in enumerate(range(binStartX, binEndX, Env.pinWidthGap)):
-    #         self.createBin(binX, Env.screenHeight -( 0.9 * Env.slotHeight * self.binHeight[i])/2 - Env.boundaryThickness, Env.pinWidthGap - 2, 0.9 * Env.slotHeight * self.binHeight[i], [144, 238, 144, 10])                    
+                self.createStaticSphere(pinX, pinY, Env.pinRadius, Env.pinColor)#top boundary        
                 
         
     def createStaticBox(self, x, y, wd, ht, color):
@@ -151,18 +150,26 @@ class Environment:
         pygame.draw.rect(rect_surf, color, rect_surf.get_rect())
         self.screen.blit(rect_surf, (x, y))
 
-    def makeBinomialCombs(self):
+    def makeBinomialCombs(self, dropSlot):
         combs = [math.comb(self.pinLevels - 1,i) for i in range(self.pinLevels)]
-        self.binHeight = [0.0] * (Env.numPins - 1)
-        drop = Env.dropSlot - self.pinLevels//2 - 1
+        binHeight = [0.0] * (Env.numPins - 1)
+        drop = dropSlot - self.pinLevels//2 - 1
         for i, x in enumerate(combs):
             if drop + i >= 0 and drop + i < Env.numPins - 1:
-                self.binHeight[drop  + i] += x
-            elif Env.dropSlot - self.pinLevels//2 + i < 0:
-                self.binHeight[-(drop + i) - 1] += x
-            elif Env.dropSlot - self.pinLevels//2 + i >= Env.numPins - 1:
-                self.binHeight[2*(Env.numPins -1)  - (drop + i) - 1] += x
-        self.binHeight = [float(i)/max(self.binHeight) for i in self.binHeight]
+                binHeight[drop  + i] += x
+            elif dropSlot - self.pinLevels//2 + i < 0:
+                binHeight[-(drop + i) - 1] += x
+            elif dropSlot - self.pinLevels//2 + i >= Env.numPins - 1:
+                binHeight[2*(Env.numPins -1)  - (drop + i) - 1] += x
+        binHeight = [float(i)/sum(binHeight) for i in binHeight]
+        return binHeight
+
+    def calcExpectedValue(self):
+        self.expectedValues = [0] * (Env.numPins - 1)
+        for j in range(len(self.expectedValues)):
+            binHeight = self.makeBinomialCombs(j + 1)
+            for i in range(len(self.values)):
+                self.expectedValues[j] += self.values[i] * binHeight[i]
         pass
 
 
@@ -180,11 +187,13 @@ class Environment:
         binStartX = int(Env.worldX + Env.boundaryThickness)
         binEndX = int(Env.screenHeight - Env.boundaryThickness- Env.pinWidthGap)
         for i, binX in enumerate(range(binStartX, binEndX, Env.pinWidthGap)):
-            self.createBin(binX, Env.screenHeight -(0.9 * Env.slotHeight * self.binHeight[i]) - Env.boundaryThickness, Env.pinWidthGap, 0.9 * Env.slotHeight * self.binHeight[i], [144, 238, 144, 100])
+            self.createBin(binX, Env.screenHeight -(0.9 * Env.slotHeight * self.binHeight[i]/max(self.binHeight)) - Env.boundaryThickness, Env.pinWidthGap, 0.9 * Env.slotHeight * self.binHeight[i]/max(self.binHeight), [144, 238, 144, 100])
         pass
 
     def displayStats(self):
         self.screen.blit(self.font.render(self.infoString[0], 1, THECOLORS["gray"]), self.statsPos)
+        self.screen.blit(self.font.render(f'Sample Expected Value: {self.sampleExpectedValue:.2f}' , 1, THECOLORS["gray"]), self.statsPos + (0, 20))
+        self.screen.blit(self.font.render(f'Expected Value: {self.expectedValues[Env.dropSlot -1 ]:.2f} | Best Slot: {np.argmax(self.expectedValues)}' , 1, THECOLORS["gray"]), self.statsPos + (0, 40))
         for i in range(1,len(self.infoString)):
             self.screen.blit(self.font.render(self.infoString[i], 1, THECOLORS["gray"]), self.statsPos+((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-1)) , Env.screenHeight - Env.slotHeight - Env.boundaryThickness))
             if i-1 < len(self.values):
@@ -229,12 +238,21 @@ class Environment:
                 self.gamePaused = True
 
             if self.ballObjects:
-                self.count = [0] * Env.numPins
+                self.count = [0] * (Env.numPins- 1)
                 for i in self.ballObjects:
                     if i.body.position.y > Env.screenHeight - Env.slotHeight - Env.boundaryThickness:
-                        self.count[int(i.body.position.x/Env.pinWidthGap)] += 1
+                        self.count[int((i.body.position.x - Env.boundaryThickness)/Env.pinWidthGap)] += 1
                 self.infoString[1:] = [str(self.count[i]) for i in range(0,len(self.count))]
+                self.sampleExpectedValue = self.calcSampleExpectedValue()
             self.draw()
             
             clock.tick(self.fps*self.timeScale)
+
+    def calcSampleExpectedValue(self):
+        if Env.numBalls - self.maxBalls == 0:
+            return 0
+        sampleExpectedValue = 0
+        for i in range(len(self.count)):
+            sampleExpectedValue += self.count[i] * self.values[i]
+        return sampleExpectedValue/(Env.numBalls - self.maxBalls)
                                               
