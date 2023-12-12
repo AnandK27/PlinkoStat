@@ -83,7 +83,7 @@ class Environment:
         self.screen = pygame.display.set_mode((Env.screenWidth, Env.screenHeight), self.display_flags)
         pygame.display.set_caption("PlinkoStat")
 
-        self.font = pygame.font.SysFont("poppins", 18)
+        self.font = pygame.font.SysFont("poppins", 16)
         #width, height = self.screen.get_size()
         self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
         self.draw_options.constraint_color = 140, 140, 140  
@@ -92,10 +92,14 @@ class Environment:
 
         self.Manager2 = pygame_gui.UIManager((Env.screenWidth, Env.screenHeight))
 
-
-        self.slotText = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 100), (200, 50)),
-                                            text='Select Slot to Drop Ball',
+        self.title = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 0), (200, 50)),
+                                            text='PlinkoStat',
                                             manager=self.Manager, anchors={'centerx' : 'centerx'})
+        
+
+        self.slotText = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 0), (200, 50)),
+                                            text='Select Slot to Drop Ball',
+                                            manager=self.Manager, anchors={'top': 'top', 'top_target' : self.title ,'centerx' : 'centerx'})
         self.slotInput = pygame_gui.elements.UIDropDownMenu(relative_rect=pygame.Rect((0, 0), (70, 30)), options_list=[str(i) for i in range(1, Env.numPins)], starting_option=str(8),
                                             manager=self.Manager , anchors={'top': 'top', 'top_target' : self.slotText, 'centerx' : 'centerx'})
         
@@ -125,21 +129,23 @@ class Environment:
         
         self.valuesInput = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((0, 0), (200, 30)), manager=self.Manager, anchors={'top': 'top', 'top_target' : self.valuesTextDisclaimer, 'centerx' : 'centerx'})
 
+        self.showBins = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 20), (200, 50)),
+                                            text='Hide Binomial Plot',
+                                            manager=self.Manager, anchors={'top': 'top',  'top_target' : self.valuesInput, 'centerx' : 'centerx'})
         
-        self.startButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((220, 40), (100, 50)),
+        self.startButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((220, 20), (100, 50)),
                                             text='Start',
-                                            manager=self.Manager, anchors={'top': 'top',  'top_target' : self.valuesInput})
+                                            manager=self.Manager, anchors={'top': 'top',  'top_target' : self.showBins})
         
        
-        self.pauseButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((80, 40), (100, 50)),
+        self.pauseButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((80, 20), (100, 50)),
                                             text='Pause',
-                                            manager=self.Manager, anchors={'top': 'top',  'top_target' : self.valuesInput})
+                                            manager=self.Manager, anchors={'top': 'top',  'top_target' : self.showBins})
         
         self.fastButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((220, 20), (150, 50)),
                                             text='Fast Forward >>',
                                             manager=self.Manager, anchors={'top': 'top',  'top_target' : self.startButton})
         
-       
         self.slowButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((30, 20), (150, 50)),
                                             text=' << Slow Down',
                                             manager=self.Manager, anchors={'top': 'top',  'top_target' : self.pauseButton})
@@ -378,21 +384,44 @@ class Environment:
                             value_list = random.choices(value_temp_list, k=Env.numPins -1)
                         else:
                             value_list = value_temp_list
-                        self.initialize(int(self.slotInput.selected_option), int(self.levelInput.selected_option), int(self.numBallsNumber.text), value_list, self.timeScale, True)
+                        self.initialize(int(self.slotInput.selected_option), int(self.levelInput.selected_option), int(self.numBallsNumber.text), value_list, self.timeScale, False, self.binDisplay)
                         self.draw()
                     elif event.ui_element == self.pauseButton:
                         self.gamePaused = not self.gamePaused
+                        if self.gamePaused:
+                            self.pauseButton.set_text("Resume")
+                        else:
+                            self.pauseButton.set_text("Pause")
+
                     elif event.ui_element == self.fastButton:
                         self.timeScale = min(5, self.timeScale*1.25)
                     elif event.ui_element == self.slowButton:
                         self.timeScale = max(0.5, self.timeScale/1.25)
                     elif event.ui_element == self.plotButton:
                         import matplotlib.pyplot as plt
-                        plt.plot(self.timeListSampleExpectedValue)
-                        plt.show()
+                        fig, ax = plt.subplots(1,2, figsize=(15,6))
+                        ax1 = plt.subplot(1,2,1)
+                        ax1.plot(self.timeListSampleExpectedValue, label = 'sample')
+                        ax1.plot([self.expectedValues[Env.dropSlot -1 ]]*len(self.timeListSampleExpectedValue), label = 'true')
+                        ax1.legend()
+                        ax1.title.set_text("Comparision of Sample and True Expected Value with Time")
+                        ax1.set(xlabel='time in sec', ylabel='Expected Value')
 
-                        plt.bar(self.expectedValues)
+                        ax2 = plt.subplot(1,2,2)
+                        ax2.bar(range(1, len(self.expectedValues)+1), self.expectedValues)
+                        ax2.bar(np.argmax(self.expectedValues)+1, self.expectedValues[np.argmax(self.expectedValues)], label = 'best')
+                        ax2.bar(Env.dropSlot, self.expectedValues[Env.dropSlot -1], label = 'chosen')
+                        ax2.legend()
+                        ax2.title.set_text("Comparision of Expected Values of Each Slot")
+                        ax2.set(xlabel='Slot Number', ylabel='Expected Value')
+
                         plt.show()
+                    elif event.ui_element == self.showBins:
+                        self.binDisplay = not self.binDisplay
+                        if self.binDisplay:
+                            self.showBins.set_text("Hide Binomial Plot")
+                        else:
+                            self.showBins.set_text("Show Binomial Plot")
                 elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
                     if event.ui_element == self.numBallsInput:
                         self.numBallsNumber.set_text(str(int(event.value)))
