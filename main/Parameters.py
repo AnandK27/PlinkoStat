@@ -11,9 +11,10 @@ class Env:
     pinWidthGap = 50
     pinHeightGap = 30
     pinRadius = 8
-    screenHeight = 800    
-    screenWidth = int(pinWidthGap*(numPins-0.5) - pinRadius - boundaryThickness)
-    worldX = 0
+    screenHeight = 750    
+    screenGameWidth = int(pinWidthGap*(numPins-0.5) - pinRadius - boundaryThickness)
+    screenWidth = 400 + int(pinWidthGap*(numPins-0.5) - pinRadius - boundaryThickness)  
+    worldX = 400
     worldY = 0 
     slotHeight = 0.35 * screenHeight
     pinEndY = screenHeight - (boundaryThickness*2) - slotHeight
@@ -24,6 +25,7 @@ class Env:
     ballReleaseY = worldY + (boundaryThickness*2)
     ballCreationInterval_seconds = 0.5
     waitTimeToEndSimulation_seconds = 10
+    
 
 class DarkTheme:
     boundaryColor = [100,100,100,255]

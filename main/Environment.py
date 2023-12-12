@@ -1,7 +1,3 @@
-# Author: Navin
-# Created: December 2020
-# License: MIT
-
 import sys
 import time
 import pygame
@@ -15,15 +11,141 @@ from pygame.locals import *
 from Parameters import *
 import math
 import numpy as np
+import pygame_gui
 
-from pymunk.shape_filter import ShapeFilter
+from pygame_gui.core import ObjectID
+from pygame_gui.core.interfaces import IContainerLikeInterface, IUIManagerInterface
+from pygame_gui.core import UIElement
+from pygame_gui.elements.ui_status_bar import UIStatusBar
+
+from typing import Union, Dict, Optional
+
+
+class UIProgressBar(UIStatusBar):
+    """
+    A UI that will display a progress bar from 0 to 100%
+
+    :param relative_rect: The rectangle that defines the size and position of the progress bar.
+    :param manager: The UIManager that manages this element. If not provided or set to None,
+                    it will try to use the first UIManager that was created by your application.
+    :param container: The container that this element is within. If not provided or set to None
+                      will be the root window's container.
+    :param parent_element: The element this element 'belongs to' in the theming hierarchy.
+    :param object_id: A custom defined ID for fine tuning of theming.
+    :param anchors: A dictionary describing what this element's relative_rect is relative to.
+    :param visible: Whether the element is visible by default. Warning - container visibility
+                    may override this.
+    """
+    element_id = 'progress_bar'
+
+    def __init__(self,
+                 relative_rect: pygame.Rect,
+                 manager: Optional[IUIManagerInterface] = None,
+                 container: Optional[IContainerLikeInterface] = None,
+                 parent_element: Optional[UIElement] = None,
+                 object_id: Optional[Union[ObjectID, str, ]] = None,
+                 anchors: Optional[Dict[str, Union[str, UIElement]]] = None,
+                 visible: int = 1, max_val = 300.0):
+
+        self.current_progress = 0.0
+        self.maximum_progress = 100.0
+        self.max_val = max_val
+
+        super().__init__(relative_rect=relative_rect,
+                         manager=manager,
+                         container=container,
+                         parent_element=parent_element,
+                         object_id=object_id,
+                         anchors=anchors,
+                         visible=visible)
+
+    @property
+    def progress_percentage(self):
+        return self.current_progress / self.maximum_progress
+
+    def status_text(self):
+        """ Subclass and override this method to change what text is displayed, or to suppress the text. """
+        return f"Number of Balls: {self.current_progress * self.max_val/100:.0f}"
+
+    def set_current_progress(self, progress: float):
+        # Now that we subclass UIStatusBar, set_current_progress() and self.current_progress are mostly here for backward compatibility.
+        self.current_progress = progress
+
+        # Setting this triggers updating if necessary.
+        self.percent_full = progress
 
 
 class Environment:
     def __init__(self):
-        pass
+        self.display_flags = 0 
+        pygame.init()
+        pygame.mixer.quit()#disable sound output that causes annoying sound effects if any other external music player is playing
+        self.screen = pygame.display.set_mode((Env.screenWidth, Env.screenHeight), self.display_flags)
+        pygame.display.set_caption("PlinkoStat")
 
-    def initialize(self, dropSlot = 13, pinLevels = 13, numBalls = 500, values = random.choices([100, 500, 1000, 0, 10000, 0, 1000, 500, 100], k=Env.numPins -1), timeScale = 1, binDisplay = True, dark_theme = True):
+        self.font = pygame.font.SysFont("poppins", 18)
+        #width, height = self.screen.get_size()
+        self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
+        self.draw_options.constraint_color = 140, 140, 140  
+
+        self.Manager = pygame_gui.UIManager((400, Env.screenHeight))
+
+        self.Manager2 = pygame_gui.UIManager((Env.screenWidth, Env.screenHeight))
+
+
+        self.slotText = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 100), (200, 50)),
+                                            text='Select Slot to Drop Ball',
+                                            manager=self.Manager, anchors={'centerx' : 'centerx'})
+        self.slotInput = pygame_gui.elements.UIDropDownMenu(relative_rect=pygame.Rect((0, 0), (70, 30)), options_list=[str(i) for i in range(1, Env.numPins)], starting_option=str(8),
+                                            manager=self.Manager , anchors={'top': 'top', 'top_target' : self.slotText, 'centerx' : 'centerx'})
+        
+        self.levelText = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 10), (200, 50)),
+                                            text='Select Number of Levels',
+                                            manager=self.Manager, anchors={'top': 'top', 'top_target' : self.slotInput, 'centerx' : 'centerx'})
+        
+        self.levelInput = pygame_gui.elements.UIDropDownMenu(relative_rect=pygame.Rect((0, 0), (70, 30)), options_list=[str(i) for i in range(3, 14)], starting_option=str(13),
+                                            manager=self.Manager , anchors={'top': 'top', 'top_target' : self.levelText, 'centerx' : 'centerx'})
+        
+        self.numBallsText = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 10), (200, 50)),
+                                            text='Select Number of Balls',
+                                            manager=self.Manager, anchors={'top': 'top', 'top_target' : self.levelInput, 'centerx' : 'centerx'})
+        
+        self.numBallsInput = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((0, 0), (200, 30)), value_range=(200, 700), start_value=300,
+                                            manager=self.Manager , anchors={'top': 'top', 'top_target' : self.numBallsText, 'centerx' : 'centerx'})
+        self.numBallsNumber = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, -10), (200, 50)), text='300', manager=self.Manager, anchors={'top': 'top', 'top_target' : self.numBallsInput, 'centerx' : 'centerx'})
+        
+        #enter the values for the slots
+        self.valuesText = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, -10), (350, 50)),
+                                            text='Enter Values for Slots: ',
+                                            manager=self.Manager, anchors={'top': 'top', 'top_target' : self.numBallsNumber, 'centerx' : 'centerx'})
+        
+        self.valuesTextDisclaimer = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, -30), (350, 50)),
+                                            text='(comma separated; max 15)',
+                                            manager=self.Manager, anchors={'top': 'top', 'top_target' : self.valuesText, 'centerx' : 'centerx'})
+        
+        self.valuesInput = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((0, 0), (200, 30)), manager=self.Manager, anchors={'top': 'top', 'top_target' : self.valuesTextDisclaimer, 'centerx' : 'centerx'})
+
+        
+        self.startButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((220, 40), (100, 50)),
+                                            text='Start',
+                                            manager=self.Manager, anchors={'top': 'top',  'top_target' : self.valuesInput})
+        
+       
+        self.pauseButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((80, 40), (100, 50)),
+                                            text='Pause',
+                                            manager=self.Manager, anchors={'top': 'top',  'top_target' : self.valuesInput})
+        
+        self.FastButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((220, 20), (150, 50)),
+                                            text='Fast Forward >>',
+                                            manager=self.Manager, anchors={'top': 'top',  'top_target' : self.startButton})
+        
+       
+        self.SlowButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((30, 20), (150, 50)),
+                                            text=' << Slow Down',
+                                            manager=self.Manager, anchors={'top': 'top',  'top_target' : self.pauseButton})
+        
+
+    def initialize(self, dropSlot = 14, pinLevels = 13, numBalls = 500, values = random.choices([100, 500, 1000, 0, 10000, 0, 1000, 500, 100], k=Env.numPins -1), timeScale = 1, binDisplay = True, dark_theme = True):
         if dark_theme:
             self.Theme = DarkTheme
         else:
@@ -32,19 +154,14 @@ class Environment:
         self.pinLevels = pinLevels
         Env.numBalls = numBalls
         self.timeScale = timeScale
-        pymunk.pygame_util.positive_y_is_up = False #NOTE: Pymunk physics coordinates normally start from the lower right-hand corner of the screen. This line makes it the opposite (coordinates 0,0 begin at the top left corner of the screen)
-        self.screen = None
-        self.draw_options = None       
+        pymunk.pygame_util.positive_y_is_up = False #NOTE: Pymunk physics coordinates normally start from the lower right-hand corner of the screen. This line makes it the opposite (coordinates 0,0 begin at the top left corner of the screen)      
         self.decimalPrecision = 2        
         self.boundaryObjects = []
         self.worldObjects = []
         self.ballObjects = []
         self.pinObjects = []
-        self.bins = []
-        self.display_flags = 0          
-        self.statsPos = Vec2d(15, 10)
-        self.UNDETERMINED = -1
-        self.highFriction = 20   
+        self.bins = []         
+        self.statsPos = Vec2d(10 + Env.worldX, 10 + Env.worldY)
         self.iterations = 20
         self.maxBalls = Env.numBalls
         if not hasattr(self, 'gamePaused'):
@@ -65,35 +182,28 @@ class Environment:
         self.createSlots()
         self.createPins()
         self.binDisplay = binDisplay
+        self.sampleExpectedValue = 0
+        self.timeListSampleExpectedValue = []
+
+
+        self.progress_bar = UIProgressBar(relative_rect=pygame.Rect((Env.screenWidth - 220 - Env.boundaryThickness, 20), (200, 30)), manager=self.Manager2)
+
         print(self.expectedValues[Env.dropSlot -1 ])
         print(np.argmax(self.expectedValues))
-        self.sampleExpectedValue = 0
-        print(self.Theme.binColor)
-
-      
+        print(len(self.binHeight))
         
-        pygame.init()
-        pygame.mixer.quit()#disable sound output that causes annoying sound effects if any other external music player is playing
-        self.screen = pygame.display.set_mode((Env.screenWidth, Env.screenHeight), self.display_flags)
-        self.font = pygame.font.SysFont("poppins", 20)
-        #width, height = self.screen.get_size()
-        self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
-        self.draw_options.constraint_color = 140, 140, 140              
-        #self.draw_options.flags = pymunk.SpaceDebugDrawOptions.DRAW_SHAPES        
-        self.draw_options.flags ^= pymunk.SpaceDebugDrawOptions.DRAW_COLLISION_POINTS #turn off the collision points.
-        # Stops drawing the constraints.
-        self.draw_options.flags ^= pymunk.SpaceDebugDrawOptions.DRAW_CONSTRAINTS
+                  
         
     def createOuterBoundary(self):              
-        self.createStaticBox(Env.worldX+Env.screenWidth/2, Env.worldY+Env.boundaryThickness/2, Env.screenWidth, Env.boundaryThickness, self.Theme.boundaryColor)#top boundary
-        self.createStaticBox(Env.worldX+Env.screenWidth/2, Env.worldY+Env.screenHeight-Env.boundaryThickness/2, Env.screenWidth, Env.boundaryThickness, self.Theme.boundaryColor)#bottom boundary
+        self.createStaticBox(Env.worldX+Env.screenGameWidth/2, Env.worldY+Env.boundaryThickness/2, Env.screenGameWidth, Env.boundaryThickness, self.Theme.boundaryColor)#top boundary
+        self.createStaticBox(Env.worldX+Env.screenGameWidth/2, Env.worldY+Env.screenHeight-Env.boundaryThickness/2, Env.screenGameWidth, Env.boundaryThickness, self.Theme.boundaryColor)#bottom boundary
         self.createStaticBox(Env.worldX+Env.boundaryThickness/2, Env.worldY+Env.screenHeight/2, Env.boundaryThickness, Env.screenHeight-(2*Env.boundaryThickness), self.Theme.boundaryColor)#left boundary
-        self.createStaticBox(Env.worldX+Env.screenWidth-Env.boundaryThickness/2, Env.worldY+Env.screenHeight/2, Env.boundaryThickness, Env.screenHeight-(2*Env.boundaryThickness), self.Theme.boundaryColor)#right boundary
+        self.createStaticBox(Env.worldX+Env.screenGameWidth-Env.boundaryThickness/2, Env.worldY+Env.screenHeight/2, Env.boundaryThickness, Env.screenHeight-(2*Env.boundaryThickness), self.Theme.boundaryColor)#right boundary
     
     def createSlots(self):
         slotY = Env.screenHeight - Env.slotHeight/2 - Env.boundaryThickness
         slotStartX = int(Env.worldX + Env.boundaryThickness + Env.pinWidthGap)
-        for slotX in range(slotStartX, Env.screenWidth, Env.pinWidthGap):
+        for slotX in range(slotStartX, Env.worldX + Env.screenGameWidth, Env.pinWidthGap):
             self.createStaticBox(slotX, slotY, Env.slotThickness, Env.slotHeight, self.Theme.slotColor)
     
     def createPins(self):
@@ -150,7 +260,6 @@ class Environment:
         shape.elasticity = 0.65 + (random.random()-0.5)*0.1  #range 0 to 9
         shape.friction = 0
         shape.color = color
-        shape.filter = ShapeFilter(group = 1)
         self.space.add(body, shape)
         self.ballObjects.append(shape)
 
@@ -166,7 +275,7 @@ class Environment:
         drop = dropSlot - self.pinLevels//2 - 1
         for i, x in enumerate(combs):
             if drop + i >= 0 and drop + i < Env.numPins - 1:
-                binHeight[drop  + i] += x
+                binHeight[drop + i] += x
             elif dropSlot - self.pinLevels//2 + i < 0:
                 binHeight[-(drop + i) - 1] += x
             elif dropSlot - self.pinLevels//2 + i >= Env.numPins - 1:
@@ -214,32 +323,34 @@ class Environment:
         self.drawPins()
         self.drawBoxes()
         self.displayStats()
-        self.displayBins()        
+        self.displayBins()
+        self.Manager.draw_ui(self.screen)
+        self.Manager2.draw_ui(self.screen)       
         pygame.display.flip()#flip the display buffer
 
     def displayBins(self):
         if self.binDisplay == False:
             return
         binStartX = int(Env.worldX + Env.boundaryThickness)
-        binEndX = int(Env.screenHeight - Env.boundaryThickness- Env.pinWidthGap)
+        binEndX = int(Env.worldX + Env.screenHeight - Env.boundaryThickness)
         for i, binX in enumerate(range(binStartX, binEndX, Env.pinWidthGap)):
             self.createBin(binX, Env.screenHeight -(0.9 * Env.slotHeight * self.binHeight[i]/max(self.binHeight)) - Env.boundaryThickness, Env.pinWidthGap, 0.9 * Env.slotHeight * self.binHeight[i]/max(self.binHeight),self.Theme.binColor)
         pass
 
     def displayStats(self):
-        self.screen.blit(self.font.render(self.infoString[0], 1, self.Theme.textColor), self.statsPos)
-        self.screen.blit(self.font.render(f'Sample Expected Value: {self.sampleExpectedValue:.2f}' , 1, self.Theme.textColor), self.statsPos + (0, 20))
-        self.screen.blit(self.font.render(f'Expected Value: {self.expectedValues[Env.dropSlot -1 ]:.2f} | Best Slot: {np.argmax(self.expectedValues)}' , 1, self.Theme.textColor), self.statsPos + (0, 40))
+        self.screen.blit(self.font.render( f'Sample Expected Value: {self.sampleExpectedValue:.2f}', 1, self.Theme.textColor), self.statsPos)
+        self.screen.blit(self.font.render(f'Expected Value (slot {Env.dropSlot}): {self.expectedValues[Env.dropSlot -1 ]:.2f} | Best Slot: {np.argmax(self.expectedValues)}' , 1, self.Theme.textColor), self.statsPos + (0, 25))
         for i in range(1,len(self.infoString)):
             self.screen.blit(self.font.render(self.infoString[i], 1, self.Theme.textColor), ((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-0.5)) , Env.screenHeight - Env.slotHeight - Env.boundaryThickness))
             text = self.font.render(str(self.values[i-1]), 1, self.Theme.textHighlightColor) 
             text = pygame.transform.rotate(text, 90)
-            self.screen.blit(text, self.statsPos+((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-1.25)) , Env.screenHeight - Env.slotHeight - Env.boundaryThickness + 40))
-            self.screen.blit(self.font.render(f'{i}' , 1, self.Theme.textLightColor), ((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-0.5)) , Env.pinStartY + Env.boundaryThickness - 40))
+            self.screen.blit(text, self.statsPos+((Env.boundaryThickness + Env.pinWidthGap*(i-1)) , Env.screenHeight - Env.slotHeight - Env.boundaryThickness + 40))
+            self.screen.blit(self.font.render(f'{i}' , 1, self.Theme.textLightColor), ((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-0.5)) , Env.pinStartY + Env.boundaryThickness - 30))
 
     def runWorld(self): 
         clock = pygame.time.Clock()  
-        self.prevTime = time.time()    
+        self.prevTime = time.time()
+        UIRefereshRate = 15/1000.0   
         while True:
             for event in pygame.event.get():
                 if event.type == QUIT or (event.type == KEYDOWN and event.key in (K_q, K_ESCAPE)):
@@ -255,6 +366,21 @@ class Environment:
                 elif event.type == KEYDOWN and event.key == K_s:
                     #slow down
                     self.timeScale = max(0.5, self.timeScale/1.25)
+                elif event.type == pygame_gui.UI_BUTTON_PRESSED:
+                    if event.ui_element == self.startButton:
+                        self.startButton.text = self.Text_Input.text
+                        self.startButton.rebuild()
+                        #self.Text_Input.text = "Hello World!"
+                        print(event.ui_element.text)
+                elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
+                    if event.ui_element == self.numBallsInput:
+                        self.numBallsNumber.set_text(str(int(event.value)))
+
+                
+                self.Manager.process_events(event)
+
+            
+
             if self.gamePaused:
                 self.prevTime = time.time()
                 continue
@@ -266,10 +392,15 @@ class Environment:
             if self.maxBalls > 0 and time.time() - self.prevTime > Env.ballCreationInterval_seconds/self.timeScale:
                 self.createDynamicBall(Env.ballReleaseX + random.random(), Env.ballReleaseY, self.ballRadius, self.Theme.ballColor)
                 self.maxBalls = self.maxBalls - 1
+                self.progress_bar.set_current_progress(int((Env.numBalls - self.maxBalls)/Env.numBalls * 100))
                 self.infoString[0] = "Number of balls: " + str(self.maxBalls)
+                if self.sampleExpectedValue != 0:
+                    self.timeListSampleExpectedValue.append(self.sampleExpectedValue)
                 self.prevTime = time.time()
 
             if self.maxBalls == 0 and sum(self.count) == Env.numBalls and time.time() - self.prevTime > Env.waitTimeToEndSimulation_seconds: 
+                print("Simulation ended")
+                print(self.timeListSampleExpectedValue)
                 self.prevTime = time.time()
                 self.gamePaused = True
 
@@ -277,10 +408,15 @@ class Environment:
                 self.count = [0] * (Env.numPins- 1)
                 for i in self.ballObjects:
                     if i.body.position.y > Env.screenHeight - Env.slotHeight - Env.boundaryThickness:
-                        self.count[int((i.body.position.x - Env.boundaryThickness)/Env.pinWidthGap)] += 1
+                        self.count[int((i.body.position.x - Env.boundaryThickness - Env.worldX)/Env.pinWidthGap)] += 1
                 self.infoString[1:] = [str(self.count[i]) for i in range(0,len(self.count))]
                 self.sampleExpectedValue = self.calcSampleExpectedValue()
+            self.Manager.update(UIRefereshRate)
+            self.Manager2.update(UIRefereshRate)
             self.draw()
+
+
+            
             
             clock.tick(self.fps*self.timeScale)
 
