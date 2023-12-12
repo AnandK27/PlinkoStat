@@ -135,14 +135,19 @@ class Environment:
                                             text='Pause',
                                             manager=self.Manager, anchors={'top': 'top',  'top_target' : self.valuesInput})
         
-        self.FastButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((220, 20), (150, 50)),
+        self.fastButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((220, 20), (150, 50)),
                                             text='Fast Forward >>',
                                             manager=self.Manager, anchors={'top': 'top',  'top_target' : self.startButton})
         
        
-        self.SlowButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((30, 20), (150, 50)),
+        self.slowButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((30, 20), (150, 50)),
                                             text=' << Slow Down',
                                             manager=self.Manager, anchors={'top': 'top',  'top_target' : self.pauseButton})
+        
+        self.plotButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 20), (150, 50)),
+                                            text='Plot',
+                                            manager=self.Manager, anchors={'top': 'top',  'top_target' : self.slowButton, 'centerx' : 'centerx'})
+        self.plotButton.disable()
         
 
     def initialize(self, dropSlot = 14, pinLevels = 13, numBalls = 500, values = random.choices([100, 500, 1000, 0, 10000, 0, 1000, 500, 100], k=Env.numPins -1), timeScale = 1, binDisplay = True, dark_theme = True):
@@ -368,21 +373,38 @@ class Environment:
                     self.timeScale = max(0.5, self.timeScale/1.25)
                 elif event.type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element == self.startButton:
-                        self.startButton.text = self.Text_Input.text
-                        self.startButton.rebuild()
-                        #self.Text_Input.text = "Hello World!"
-                        print(event.ui_element.text)
+                        value_temp_list = [int(i) for i in self.valuesInput.text.split(',')]
+                        if len(value_temp_list) < 15:
+                            value_list = random.choices(value_temp_list, k=Env.numPins -1)
+                        else:
+                            value_list = value_temp_list
+                        self.initialize(int(self.slotInput.selected_option), int(self.levelInput.selected_option), int(self.numBallsNumber.text), value_list, self.timeScale, True)
+                        self.draw()
+                    elif event.ui_element == self.pauseButton:
+                        self.gamePaused = not self.gamePaused
+                    elif event.ui_element == self.fastButton:
+                        self.timeScale = min(5, self.timeScale*1.25)
+                    elif event.ui_element == self.slowButton:
+                        self.timeScale = max(0.5, self.timeScale/1.25)
+                    elif event.ui_element == self.plotButton:
+                        import matplotlib.pyplot as plt
+                        plt.plot(self.timeListSampleExpectedValue)
+                        plt.show()
+
+                        plt.bar(self.expectedValues)
+                        plt.show()
                 elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
                     if event.ui_element == self.numBallsInput:
                         self.numBallsNumber.set_text(str(int(event.value)))
 
-                
                 self.Manager.process_events(event)
-
-            
 
             if self.gamePaused:
                 self.prevTime = time.time()
+                self.Manager.update(UIRefereshRate)
+                self.Manager2.update(UIRefereshRate)
+                self.draw()
+                clock.tick(self.fps*self.timeScale)
                 continue
             #---Update physics
             dt = 1.0 / float(self.fps) / float(self.iterations)
@@ -400,7 +422,7 @@ class Environment:
 
             if self.maxBalls == 0 and sum(self.count) == Env.numBalls and time.time() - self.prevTime > Env.waitTimeToEndSimulation_seconds: 
                 print("Simulation ended")
-                print(self.timeListSampleExpectedValue)
+                self.plotButton.enable()
                 self.prevTime = time.time()
                 self.gamePaused = True
 
@@ -414,10 +436,6 @@ class Environment:
             self.Manager.update(UIRefereshRate)
             self.Manager2.update(UIRefereshRate)
             self.draw()
-
-
-            
-            
             clock.tick(self.fps*self.timeScale)
 
     def calcSampleExpectedValue(self):

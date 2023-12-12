@@ -24,7 +24,7 @@ class Env:
     ballReleaseX = worldX + boundaryThickness + pinWidthGap*(dropSlot - 0.5) 
     ballReleaseY = worldY + (boundaryThickness*2)
     ballCreationInterval_seconds = 0.5
-    waitTimeToEndSimulation_seconds = 10
+    waitTimeToEndSimulation_seconds = 3
     
 
 class DarkTheme:
