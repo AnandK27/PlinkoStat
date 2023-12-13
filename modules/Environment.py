@@ -8,7 +8,7 @@ import pymunk.pygame_util
 from pygame.color import *
 from pygame.locals import *
 from pygame.locals import *
-from Parameters import *
+from modules.Parameters import *
 import math
 import numpy as np
 import pygame_gui
@@ -65,7 +65,7 @@ class UIProgressBar(UIStatusBar):
 
     def status_text(self):
         """ Subclass and override this method to change what text is displayed, or to suppress the text. """
-        return f"Number of Balls: {self.current_progress * self.max_val/100:.0f}"
+        return f"Number of Balls: {self.current_progress * self.max_val:.0f}"
 
     def set_current_progress(self, progress: float):
         # Now that we subclass UIStatusBar, set_current_progress() and self.current_progress are mostly here for backward compatibility.
@@ -84,37 +84,41 @@ class Environment:
         pygame.display.set_caption("PlinkoStat")
 
         self.font = pygame.font.SysFont("poppins", 16)
+        self.fontTitle = pygame.font.SysFont("poppins", 30, bold=True)
         #width, height = self.screen.get_size()
         self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
         self.draw_options.constraint_color = 140, 140, 140  
 
-        self.Manager = pygame_gui.UIManager((400, Env.screenHeight))
-
-        self.Manager2 = pygame_gui.UIManager((Env.screenWidth, Env.screenHeight))
-
-        self.title = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 0), (200, 50)),
-                                            text='PlinkoStat',
-                                            manager=self.Manager, anchors={'centerx' : 'centerx'})
         
 
-        self.slotText = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 0), (200, 50)),
+        self.Manager = pygame_gui.UIManager((400, Env.screenHeight), theme_path= 'themes/light_theme.json')
+
+        self.Manager2 = pygame_gui.UIManager((Env.screenWidth, Env.screenHeight), theme_path='themes/light_theme.json')
+        
+        relative_rect = pygame.Rect((20, 20), (30, 30))
+        relative_rect.topright = (-20, 28)
+        self.themeButton = pygame_gui.elements.UIButton(relative_rect=relative_rect,
+                                            text='',
+                                            manager=self.Manager, anchors={'top': 'top', 'right' : 'right'}, object_id='#theme_button')
+
+        self.slotText = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 60), (200, 50)),
                                             text='Select Slot to Drop Ball',
-                                            manager=self.Manager, anchors={'top': 'top', 'top_target' : self.title ,'centerx' : 'centerx'})
-        self.slotInput = pygame_gui.elements.UIDropDownMenu(relative_rect=pygame.Rect((0, 0), (70, 30)), options_list=[str(i) for i in range(1, Env.numPins)], starting_option=str(8),
+                                            manager=self.Manager, anchors={'centerx' : 'centerx'})
+        self.slotInput = pygame_gui.elements.UIDropDownMenu(relative_rect=pygame.Rect((0, -10), (70, 30)), options_list=[str(i) for i in range(1, Env.numPins)], starting_option=str(8),
                                             manager=self.Manager , anchors={'top': 'top', 'top_target' : self.slotText, 'centerx' : 'centerx'})
         
         self.levelText = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 10), (200, 50)),
                                             text='Select Number of Levels',
                                             manager=self.Manager, anchors={'top': 'top', 'top_target' : self.slotInput, 'centerx' : 'centerx'})
         
-        self.levelInput = pygame_gui.elements.UIDropDownMenu(relative_rect=pygame.Rect((0, 0), (70, 30)), options_list=[str(i) for i in range(3, 14)], starting_option=str(13),
+        self.levelInput = pygame_gui.elements.UIDropDownMenu(relative_rect=pygame.Rect((0, -10), (70, 30)), options_list=[str(i) for i in range(3, 14) if i%2 == 1], starting_option=str(13),
                                             manager=self.Manager , anchors={'top': 'top', 'top_target' : self.levelText, 'centerx' : 'centerx'})
         
         self.numBallsText = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 10), (200, 50)),
                                             text='Select Number of Balls',
                                             manager=self.Manager, anchors={'top': 'top', 'top_target' : self.levelInput, 'centerx' : 'centerx'})
         
-        self.numBallsInput = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((0, 0), (200, 30)), value_range=(200, 700), start_value=300,
+        self.numBallsInput = pygame_gui.elements.UIHorizontalSlider(relative_rect=pygame.Rect((0, -10), (200, 30)), value_range=(200, 700), start_value=300,
                                             manager=self.Manager , anchors={'top': 'top', 'top_target' : self.numBallsText, 'centerx' : 'centerx'})
         self.numBallsNumber = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, -10), (200, 50)), text='300', manager=self.Manager, anchors={'top': 'top', 'top_target' : self.numBallsInput, 'centerx' : 'centerx'})
         
@@ -127,7 +131,7 @@ class Environment:
                                             text='(comma separated; max 15)',
                                             manager=self.Manager, anchors={'top': 'top', 'top_target' : self.valuesText, 'centerx' : 'centerx'})
         
-        self.valuesInput = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((0, 0), (200, 30)), manager=self.Manager, anchors={'top': 'top', 'top_target' : self.valuesTextDisclaimer, 'centerx' : 'centerx'})
+        self.valuesInput = pygame_gui.elements.UITextEntryLine(relative_rect=pygame.Rect((0, -10), (200, 30)), manager=self.Manager, anchors={'top': 'top', 'top_target' : self.valuesTextDisclaimer, 'centerx' : 'centerx'})
 
         self.showBins = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 20), (200, 50)),
                                             text='Hide Binomial Plot',
@@ -146,9 +150,13 @@ class Environment:
                                             text='Fast Forward >>',
                                             manager=self.Manager, anchors={'top': 'top',  'top_target' : self.startButton})
         
+        self.speedText = pygame_gui.elements.UILabel(relative_rect=pygame.Rect((0, 20), (350, 50)),
+                                            text='1x',
+                                            manager=self.Manager, anchors={'top': 'top', 'top_target' : self.pauseButton, 'centerx' : 'centerx'})
+        
         self.slowButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((30, 20), (150, 50)),
                                             text=' << Slow Down',
-                                            manager=self.Manager, anchors={'top': 'top',  'top_target' : self.pauseButton})
+                                            manager=self.Manager, anchors={'top': 'top',  'top_target' : self.startButton})
         
         self.plotButton = pygame_gui.elements.UIButton(relative_rect=pygame.Rect((0, 20), (150, 50)),
                                             text='Plot',
@@ -156,11 +164,8 @@ class Environment:
         self.plotButton.disable()
         
 
-    def initialize(self, dropSlot = 14, pinLevels = 13, numBalls = 500, values = random.choices([100, 500, 1000, 0, 10000, 0, 1000, 500, 100], k=Env.numPins -1), timeScale = 1, binDisplay = True, dark_theme = True):
-        if dark_theme:
-            self.Theme = DarkTheme
-        else:
-            self.Theme = LightTheme
+    def initialize(self, dropSlot = 8, pinLevels = 13, numBalls = 300, values = random.choices([100, 500, 1000, 0, 10000, 0, 1000, 500, 100], k=Env.numPins -1), timeScale = 1):
+        self.setTheme()
         self.ballRadius = Env.ballSize
         self.pinLevels = pinLevels
         Env.numBalls = numBalls
@@ -177,6 +182,10 @@ class Environment:
         self.maxBalls = Env.numBalls
         if not hasattr(self, 'gamePaused'):
             self.gamePaused = False
+        if self.gamePaused:
+            self.pauseButton.set_text("Resume")
+        else:
+            self.pauseButton.set_text("Pause")
         Env.dropSlot = dropSlot
         Env.pinStartY =  max(int(Env.pinEndY - (self.pinLevels)* Env.pinHeightGap), int(Env.pinEndY - 13 * Env.pinHeightGap))
         Env.ballReleaseX = Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(Env.dropSlot - 0.5) - 0.5
@@ -192,18 +201,33 @@ class Environment:
         self.createOuterBoundary()
         self.createSlots()
         self.createPins()
-        self.binDisplay = binDisplay
+        self.binDisplay = True
         self.sampleExpectedValue = 0
         self.timeListSampleExpectedValue = []
 
 
-        self.progress_bar = UIProgressBar(relative_rect=pygame.Rect((Env.screenWidth - 220 - Env.boundaryThickness, 20), (200, 30)), manager=self.Manager2)
+        self.progress_bar = UIProgressBar(relative_rect=pygame.Rect((Env.screenWidth - 220 - Env.boundaryThickness, 20), (200, 30)), manager=self.Manager2, max_val = Env.numBalls)
 
         print(self.expectedValues[Env.dropSlot -1 ])
         print(np.argmax(self.expectedValues))
         print(len(self.binHeight))
         
-                  
+    def setTheme(self, dark_theme=True):
+        if dark_theme:
+            self.Theme = DarkTheme
+
+            self.Manager.get_theme().load_theme('themes/dark_theme.json')
+            self.Manager.ui_theme.need_to_rebuild_data_manually_changed = True
+            self.Manager2.get_theme().load_theme('themes/dark_theme.json')
+            self.Manager2.ui_theme.need_to_rebuild_data_manually_changed = True
+        else:
+            self.Theme = LightTheme
+            self.Manager.get_theme().load_theme('themes/light_theme.json')
+            self.Manager.ui_theme.need_to_rebuild_data_manually_changed = True
+            self.Manager2.get_theme().load_theme('themes/light_theme.json')
+            self.Manager2.ui_theme.need_to_rebuild_data_manually_changed = True
+        
+
         
     def createOuterBoundary(self):              
         self.createStaticBox(Env.worldX+Env.screenGameWidth/2, Env.worldY+Env.boundaryThickness/2, Env.screenGameWidth, Env.boundaryThickness, self.Theme.boundaryColor)#top boundary
@@ -349,6 +373,7 @@ class Environment:
         pass
 
     def displayStats(self):
+        self.screen.blit(self.fontTitle.render( f'PlinkoStat', 1, self.Theme.titleColor), (130, 20))
         self.screen.blit(self.font.render( f'Sample Expected Value: {self.sampleExpectedValue:.2f}', 1, self.Theme.textColor), self.statsPos)
         self.screen.blit(self.font.render(f'Expected Value (slot {Env.dropSlot}): {self.expectedValues[Env.dropSlot -1 ]:.2f} | Best Slot: {np.argmax(self.expectedValues)}' , 1, self.Theme.textColor), self.statsPos + (0, 25))
         for i in range(1,len(self.infoString)):
@@ -356,7 +381,10 @@ class Environment:
             text = self.font.render(str(self.values[i-1]), 1, self.Theme.textHighlightColor) 
             text = pygame.transform.rotate(text, 90)
             self.screen.blit(text, self.statsPos+((Env.boundaryThickness + Env.pinWidthGap*(i-1)) , Env.screenHeight - Env.slotHeight - Env.boundaryThickness + 40))
-            self.screen.blit(self.font.render(f'{i}' , 1, self.Theme.textLightColor), ((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-0.5)) , Env.pinStartY + Env.boundaryThickness - 30))
+            if i == Env.dropSlot:
+                self.screen.blit(self.font.render(f'{i}' , 1, self.Theme.textHighlightColor), ((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-0.5)) , Env.pinStartY + Env.boundaryThickness - 30))
+            else:
+                self.screen.blit(self.font.render(f'{i}' , 1, self.Theme.textLightColor), ((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-0.5)) , Env.pinStartY + Env.boundaryThickness - 30))
 
     def runWorld(self): 
         clock = pygame.time.Clock()  
@@ -379,12 +407,15 @@ class Environment:
                     self.timeScale = max(0.5, self.timeScale/1.25)
                 elif event.type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element == self.startButton:
-                        value_temp_list = [int(i) for i in self.valuesInput.text.split(',')]
-                        if len(value_temp_list) < 15:
-                            value_list = random.choices(value_temp_list, k=Env.numPins -1)
+                        if self.valuesInput.text:
+                            value_temp_list = [int(i) for i in self.valuesInput.text.split(',')]
+                            if len(value_temp_list) < 15:
+                                value_list = random.choices(value_temp_list, k=Env.numPins -1)
+                            else:
+                                value_list = value_temp_list
                         else:
-                            value_list = value_temp_list
-                        self.initialize(int(self.slotInput.selected_option), int(self.levelInput.selected_option), int(self.numBallsNumber.text), value_list, self.timeScale, False, self.binDisplay)
+                            value_list = random.choices([100, 500, 1000, 0, 10000, 0, 1000, 500, 100], k=Env.numPins -1)
+                        self.initialize(int(self.slotInput.selected_option), int(self.levelInput.selected_option), int(self.numBallsNumber.text), value_list, self.timeScale, False)
                         self.draw()
                     elif event.ui_element == self.pauseButton:
                         self.gamePaused = not self.gamePaused
@@ -394,9 +425,11 @@ class Environment:
                             self.pauseButton.set_text("Pause")
 
                     elif event.ui_element == self.fastButton:
-                        self.timeScale = min(5, self.timeScale*1.25)
+                        self.timeScale = min(5, self.timeScale+0.25)
+                        self.speedText.set_text(f'{self.timeScale:.2f}' + "x")
                     elif event.ui_element == self.slowButton:
-                        self.timeScale = max(0.5, self.timeScale/1.25)
+                        self.timeScale = max(0.5, self.timeScale-0.25)
+                        self.speedText.set_text(f'{self.timeScale:.2f}' + "x")
                     elif event.ui_element == self.plotButton:
                         import matplotlib.pyplot as plt
                         fig, ax = plt.subplots(1,2, figsize=(15,6))
@@ -422,6 +455,10 @@ class Environment:
                             self.showBins.set_text("Hide Binomial Plot")
                         else:
                             self.showBins.set_text("Show Binomial Plot")
+
+                    elif event.ui_element == self.themeButton:
+                        self.setTheme(not self.Theme == DarkTheme)
+
                 elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
                     if event.ui_element == self.numBallsInput:
                         self.numBallsNumber.set_text(str(int(event.value)))
@@ -443,7 +480,8 @@ class Environment:
             if self.maxBalls > 0 and time.time() - self.prevTime > Env.ballCreationInterval_seconds/self.timeScale:
                 self.createDynamicBall(Env.ballReleaseX + random.random(), Env.ballReleaseY, self.ballRadius, self.Theme.ballColor)
                 self.maxBalls = self.maxBalls - 1
-                self.progress_bar.set_current_progress(int((Env.numBalls - self.maxBalls)/Env.numBalls * 100))
+                #self.progress_bar.set_current_progress(2)
+                self.progress_bar.set_current_progress((Env.numBalls - self.maxBalls)/Env.numBalls)
                 self.infoString[0] = "Number of balls: " + str(self.maxBalls)
                 if self.sampleExpectedValue != 0:
                     self.timeListSampleExpectedValue.append(self.sampleExpectedValue)
@@ -454,6 +492,7 @@ class Environment:
                 self.plotButton.enable()
                 self.prevTime = time.time()
                 self.gamePaused = True
+                self.pauseButton.set_text("Resume")
 
             if self.ballObjects:
                 self.count = [0] * (Env.numPins- 1)

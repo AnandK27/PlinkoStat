@@ -37,6 +37,7 @@ class DarkTheme:
     textLightColor = [100,100, 100, 100]
     textHighlightColor = THECOLORS['lightblue']
     bgColor = [30,30,30,255]
+    titleColor = [144, 238, 144, 255]
 
 class LightTheme:
     boundaryColor = [150,150,150,255]
@@ -48,6 +49,7 @@ class LightTheme:
     textHighlightColor = THECOLORS['blue']
     textLightColor = [160,160,160, 50]
     bgColor = [255, 249, 242,255]
+    titleColor = [100, 210, 100, 255]
 
     if __name__ == "__main__":
         print(THECOLORS["gray"])

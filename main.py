@@ -3,8 +3,8 @@ import logging, traceback
 
 if __name__ == '__main__':
 
-    from Parameters import Env
-    from Environment import *
+    from modules.Parameters import Env
+    from modules.Environment import *
     
     noErrors = True
     sim = Environment()    

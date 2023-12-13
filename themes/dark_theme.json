@@ -1,0 +1,207 @@
+{
+    "defaults":
+    {
+        "colours":
+        {
+            "normal_bg":"#45494e",
+            "hovered_bg":"#172F4C",
+            "disabled_bg":"#25292e",
+            "selected_bg":"#193754",
+            "dark_bg":"#15191e",
+            "normal_text":"#c5cbd8",
+            "hovered_text":"#FFFFFF",
+            "selected_text":"#FFFFFF",
+            "disabled_text":"#B7C1BA",
+            "link_text": "#0000EE",
+            "link_hover": "#2020FF",
+            "link_selected": "#551A8B",
+            "hovered_border": "#B0B0B0",
+            "disabled_border": "#808080",
+            "selected_border": "#8080B0",
+            "active_border": "#8080B0"
+        },
+
+        "font":
+        {   "name" : "Poppins",
+            "regular_path" : "themes/fonts/Poppins-Regular.ttf",
+            "bold_path" : "themes/fonts/Poppins-Bold.ttf",
+            "italic_path" : "themes/fonts/Poppins-Italic.ttf",
+            "bold_italic_path" : "themes/fonts/Poppins-BoldItalic.ttf",
+            "size": "12",
+            "bold": "0",
+            "italic": "1"
+        }
+    },
+
+    "progress_bar":
+     {
+         "colours":
+         {
+             "normal_text": "#E8ECF5",
+             "normal_border": "#DDDDDD",
+             "filled_bar": "rgba(50, 238, 50, 255), rgba(70, 210, 70, 255),180",
+             "unfilled_bar": "#CCCCCC"
+         },
+
+         
+        "font":
+        {   
+            "name" : "Poppins",
+            "regular_path" : "themes/fonts/Poppins-Regular.ttf",
+            "bold_path" : "themes/fonts/Poppins-Bold.ttf",
+            "italic_path" : "themes/fonts/Poppins-Italic.ttf",
+            "bold_italic_path" : "themes/fonts/Poppins-BoldItalic.ttf",
+            "size": "14",
+            "bold": "0",
+            "italic": "0"
+        }
+     },
+
+     "button":
+     {
+        "font":
+        {   
+            "name" : "Poppins",
+            "regular_path" : "themes/fonts/Poppins-Regular.ttf",
+            "bold_path" : "themes/fonts/Poppins-Bold.ttf",
+            "italic_path" : "themes/fonts/Poppins-Italic.ttf",
+            "bold_italic_path" : "themes/fonts/Poppins-BoldItalic.ttf",
+            "size": "14",
+            "bold": "0",
+            "italic": "0"
+        }
+     },
+
+     "label":
+     {
+        "font":
+        {   
+            "name" : "Poppins",
+            "regular_path" : "themes/fonts/Poppins-Regular.ttf",
+            "bold_path" : "themes/fonts/Poppins-Bold.ttf",
+            "italic_path" : "themes/fonts/Poppins-Italic.ttf",
+            "bold_italic_path" : "themes/fonts/Poppins-BoldItalic.ttf",
+            "size": "14",
+            "bold": "0",
+            "italic": "0"
+        }
+     },
+
+     "#theme_button":
+     {  
+        "colours":
+         {
+             "normal_bg": "#25292E00",
+             "hovered_bg": "#25292E00",
+             "disabled_bg": "#25292E00",
+             "selected_bg": "#25292E00",
+             "active_bg": "#25292E00",
+             "normal_text": "#25292E00",
+             "hovered_text": "#25292E00",
+             "selected_text": "#25292E00",
+             "disabled_text": "#25292E00",
+             "active_text": "#25292E00",
+             "normal_border": "#25292E00",
+             "hovered_border": "#25292E00",
+             "disabled_border": "#25292E00",
+             "selected_border": "#25292E00",
+             "active_border": "#25292E00",
+             "normal_text_shadow": "#25292E00",
+             "hovered_text_shadow": "#25292E00",
+             "disabled_text_shadow": "#25292E00",
+             "selected_text_shadow": "#25292E00",
+             "active_text_shadow": "#25292E00"
+         },
+
+        "images":
+         {
+             "normal_image": {
+                 "package": "themes.images",
+                 "resource": "light-mode.png"
+             },
+             "hovered_image": {
+                "package": "themes.images",
+                "resource": "night-mode.png"
+             },
+             "selected_image": {
+                "package": "themes.images",
+                "resource": "night-mode.png"
+             },
+             "disabled_image": {
+                "package": "themes.images",
+                "resource": "light-mode.png"
+             }
+        }
+    },
+
+    
+    "horizontal_slider.#right_button":
+    {
+            "images":
+         {
+             "normal_image": {
+                 "package": "themes.images",
+                 "resource": "right-arrow-light.png"
+             },
+             "hovered_image": {
+                "package": "themes.images",
+                "resource": "right-arrow-light.png"
+             },
+             "selected_image": {
+                "package": "themes.images",
+                "resource": "right-arrow-light.png"
+             },
+             "disabled_image": {
+                "package": "themes.images",
+                "resource": "right-arrow-light.png"
+             }
+        }
+    },
+
+    "horizontal_slider.#left_button":
+    {
+            "images":
+         {
+             "normal_image": {
+                 "package": "themes.images",
+                 "resource": "left-arrow-light.png"
+             },
+             "hovered_image": {
+                "package": "themes.images",
+                "resource": "left-arrow-light.png"
+             },
+             "selected_image": {
+                "package": "themes.images",
+                "resource": "left-arrow-light.png"
+             },
+             "disabled_image": {
+                "package": "themes.images",
+                "resource": "left-arrow-light.png"
+             }
+        }
+    },
+
+    "drop_down_menu.#expand_button":
+    {
+            "images":
+         {
+             "normal_image": {
+                 "package": "themes.images",
+                 "resource": "down-arrow-light.png"
+             },
+             "hovered_image": {
+                "package": "themes.images",
+                "resource": "down-arrow-light.png"
+             },
+             "selected_image": {
+                "package": "themes.images",
+                "resource": "down-arrow-light.png"
+             },
+             "disabled_image": {
+                "package": "themes.images",
+                "resource": "down-arrow-light.png"
+             }
+        }
+    }
+
+}
