@@ -214,7 +214,6 @@ class Environment:
         Env.numBalls = numBalls
         self.timeScale = timeScale
         pymunk.pygame_util.positive_y_is_up = False #NOTE: Pymunk physics coordinates normally start from the lower right-hand corner of the screen. This line makes it the opposite (coordinates 0,0 begin at the top left corner of the screen)      
-        self.decimalPrecision = 2        
         self.boundaryObjects = []
         self.worldObjects = []
         self.ballObjects = []
