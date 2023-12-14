@@ -237,7 +237,6 @@ class Environment:
         self.space = pymunk.Space()
         self.space.gravity = (0.0, 1900.0)
         self.fps = 60 #frames per second
-        #self.space.damping = 0.999 
         self.infoString = [""] * (Env.numPins - 1)
         self.binHeight = self.makeBinomialCombs(Env.dropSlot)
         self.calcExpectedValue()
