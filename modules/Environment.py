@@ -614,7 +614,7 @@ class Environment:
                                 value_list = value_temp_list
                         else:
                             value_list = random.choices([100, 500, 1000, 0, 10000, 0, 1000, 500, 100], k=Env.numPins -1)
-                        self.initialize(int(self.slotInput.selected_option), int(self.levelInput.selected_option), int(self.numBallsNumber.text), value_list, self.timeScale, False)
+                        self.initialize(int(self.slotInput.selected_option), int(self.levelInput.selected_option), int(self.numBallsNumber.text), value_list)
                         self.draw()
 
                     elif event.ui_element == self.pauseButton:
