@@ -3,7 +3,12 @@
 # License: MIT
 from pygame.color import *
 
+
+
 class Env:
+    '''
+    This class contains all the parameters for the simulation environment.
+    '''
     ballSize = 3
     numBalls = 50
     numPins = 16
@@ -28,6 +33,10 @@ class Env:
     
 
 class DarkTheme:
+    '''
+    This class contains all the colors for the dark theme.
+    '''
+
     boundaryColor = [100,100,100,255]
     slotColor = [50,50,50, 255]
     pinColor = [70,69,73, 255]
@@ -40,6 +49,9 @@ class DarkTheme:
     titleColor = [144, 238, 144, 255]
 
 class LightTheme:
+    '''
+    This class contains all the colors for the light theme.
+    '''
     boundaryColor = [150,150,150,255]
     slotColor = [150,150,150, 255]
     pinColor = [160, 190, 200, 255]

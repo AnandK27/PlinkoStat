@@ -76,23 +76,52 @@ class UIProgressBar(UIStatusBar):
 
 
 class Environment:
+
+    '''
+    This class contains all the parameters for the simulation environment.
+
+    Attributes:
+        numBalls (int): Number of balls to be released in the simulation.
+        pinLevels (int): Number of levels of pins.
+        dropSlot (int): Slot where the ball is dropped.
+        values (list): Values of each slot.
+        timeScale (float): Speed of the simulation.
+
+    Examples:
+        >>> env = Environment()
+        >>> env.initialize()
+        >>> env.runWorld()
+    '''
     def __init__(self):
+
+        ''' 
+        This function initializes the entire pygame environment.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        '''
+
+        #initialize pygame
         self.display_flags = 0 
         pygame.init()
         pygame.mixer.quit()#disable sound output that causes annoying sound effects if any other external music player is playing
         self.screen = pygame.display.set_mode((Env.screenWidth, Env.screenHeight), self.display_flags)
-        pygame.display.set_caption("PlinkoStat")
+        pygame.display.set_caption("PlinkoStat: Statics of a Plinko Board")
+        pygame_icon = pygame.image.load('themes/images/icon.png')
+        pygame.display.set_icon(pygame_icon)
 
         self.font = pygame.font.SysFont("poppins", 16)
         self.fontTitle = pygame.font.SysFont("poppins", 30, bold=True)
-        #width, height = self.screen.get_size()
         self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
         self.draw_options.constraint_color = 140, 140, 140  
 
         
+        #initialize pygame_gui elements
 
         self.Manager = pygame_gui.UIManager((400, Env.screenHeight), theme_path= 'themes/light_theme.json')
-
         self.Manager2 = pygame_gui.UIManager((Env.screenWidth, Env.screenHeight), theme_path='themes/light_theme.json')
         
         relative_rect = pygame.Rect((20, 20), (30, 30))
@@ -164,7 +193,21 @@ class Environment:
         self.plotButton.disable()
         
 
-    def initialize(self, dropSlot = 8, pinLevels = 13, numBalls = 300, values = random.choices([100, 500, 1000, 0, 10000, 0, 1000, 500, 100], k=Env.numPins -1), timeScale = 1):
+    def initialize(self, dropSlot = 8, pinLevels = 13, numBalls = 300,\
+                   values = random.choices([100, 500, 1000, 0, 10000, 0, 1000, 500, 100], k=Env.numPins -1), timeScale = 1):
+        '''
+        This function initializes the simulation environment.
+
+        Parameters:
+            dropSlot (int): Slot where the ball is dropped.
+            pinLevels (int): Number of levels of pins.
+            numBalls (int): Number of balls to be released in the simulation.
+            values (list): Values of each slot.
+            timeScale (float): Speed of the simulation.
+
+        Returns:
+            None
+        '''
         self.setTheme()
         self.ballRadius = Env.ballSize
         self.pinLevels = pinLevels
@@ -213,6 +256,16 @@ class Environment:
         print(len(self.binHeight))
         
     def setTheme(self, dark_theme=True):
+        '''
+        This function sets the theme of the simulation environment.
+
+        Parameters:
+            dark_theme (bool): If True, sets the dark theme. If False, sets the light theme.
+
+        Returns:
+            None
+        '''
+
         if dark_theme:
             self.Theme = DarkTheme
 
@@ -229,21 +282,46 @@ class Environment:
         
 
         
-    def createOuterBoundary(self):              
+    def createOuterBoundary(self):   
+        '''
+        This function creates the outer boundary of the simulation environment.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        '''           
         self.createStaticBox(Env.worldX+Env.screenGameWidth/2, Env.worldY+Env.boundaryThickness/2, Env.screenGameWidth, Env.boundaryThickness, self.Theme.boundaryColor)#top boundary
         self.createStaticBox(Env.worldX+Env.screenGameWidth/2, Env.worldY+Env.screenHeight-Env.boundaryThickness/2, Env.screenGameWidth, Env.boundaryThickness, self.Theme.boundaryColor)#bottom boundary
         self.createStaticBox(Env.worldX+Env.boundaryThickness/2, Env.worldY+Env.screenHeight/2, Env.boundaryThickness, Env.screenHeight-(2*Env.boundaryThickness), self.Theme.boundaryColor)#left boundary
         self.createStaticBox(Env.worldX+Env.screenGameWidth-Env.boundaryThickness/2, Env.worldY+Env.screenHeight/2, Env.boundaryThickness, Env.screenHeight-(2*Env.boundaryThickness), self.Theme.boundaryColor)#right boundary
     
     def createSlots(self):
+        '''
+        This function creates the slots of the simulation environment.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        '''
         slotY = Env.screenHeight - Env.slotHeight/2 - Env.boundaryThickness
         slotStartX = int(Env.worldX + Env.boundaryThickness + Env.pinWidthGap)
         for slotX in range(slotStartX, Env.worldX + Env.screenGameWidth, Env.pinWidthGap):
             self.createStaticBox(slotX, slotY, Env.slotThickness, Env.slotHeight, self.Theme.slotColor)
     
     def createPins(self):
-        # slotStartY = Env.screenHeight - Env.slotHeight - Env.boundaryThickness
-        # slotStartY = slotStartY - Env.boundaryThickness
+        '''
+        This function creates the pins of the simulation environment.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        '''
         pinEndY = Env.pinEndY
         pinStartY = int(Env.worldY + Env.boundaryThickness + Env.pinStartY)
         pinStartX = int(Env.worldX + Env.boundaryThickness + Env.pinWidthGap/ 2)
@@ -262,6 +340,19 @@ class Environment:
                 
         
     def createStaticBox(self, x, y, wd, ht, color):
+        '''
+        This function creates a static box in the simulation environment.
+
+        Parameters:
+            x (int): x-coordinate of the box.
+            y (int): y-coordinate of the box.
+            wd (int): Width of the box.
+            ht (int): Height of the box.
+            color (list): Color of the box.
+
+        Returns:
+            None
+        '''
         body = pymunk.Body(body_type = pymunk.Body.KINEMATIC)
         body.position = Vec2d(x, y)
         body.width = wd
@@ -274,6 +365,18 @@ class Environment:
         self.worldObjects.append(shape) 
         
     def createStaticSphere(self, xPosition, yPosition, radius, color):
+        '''
+        This function creates a static sphere in the simulation environment.
+
+        Parameters:
+            xPosition (int): x-coordinate of the sphere.
+            yPosition (int): y-coordinate of the sphere.
+            radius (int): Radius of the sphere.
+            color (list): Color of the sphere.
+
+        Returns:
+            None
+        '''
         sphereMass = 5000
         sphereInertia = pymunk.moment_for_circle(sphereMass, 0, radius, (0, 0))
         body = pymunk.Body(sphereMass, sphereInertia, body_type=pymunk.Body.KINEMATIC)
@@ -287,6 +390,18 @@ class Environment:
         self.pinObjects.append(shape)
         
     def createDynamicBall(self, xPosition, yPosition, radius, color):
+        '''
+        This function creates a dynamic sphere in the simulation environment.
+
+        Parameters:
+            xPosition (int): x-coordinate of the sphere.
+            yPosition (int): y-coordinate of the sphere.
+            radius (int): Radius of the sphere.
+            color (list): Color of the sphere.
+
+        Returns:
+            None
+        '''
         sphereMass = 5000
         sphereInertia = pymunk.moment_for_circle(sphereMass, 0, radius, (0, 0))
         body = pymunk.Body(sphereMass, sphereInertia, body_type=pymunk.Body.DYNAMIC)
@@ -299,12 +414,34 @@ class Environment:
         self.ballObjects.append(shape)
 
     def createBin(self, x, y, wd, ht, color):
+        '''
+        This function creates a bin in the simulation environment.
+
+        Parameters:
+            x (int): x-coordinate of the bin.
+            y (int): y-coordinate of the bin.
+            wd (int): Width of the bin.
+            ht (int): Height of the bin.
+            color (list): Color of the bin.
+
+        Returns:
+            None
+        '''
         rect_surf = pygame.Surface(pygame.Rect(x, y, wd, ht).size, pygame.SRCALPHA)
         pygame.draw.rect(rect_surf, color, rect_surf.get_rect())
         self.screen.blit(rect_surf, (x, y))
 
 
     def makeBinomialCombs(self, dropSlot):
+        '''
+        This function creates the binomial distribution of the simulation environment.
+
+        Parameters:
+            dropSlot (int): Slot where the ball is dropped.
+
+        Returns:
+            None
+        '''
         combs = [math.comb(self.pinLevels - 1,i) for i in range(self.pinLevels)]
         binHeight = [0.0] * (Env.numPins - 1)
         drop = dropSlot - self.pinLevels//2 - 1
@@ -319,6 +456,15 @@ class Environment:
         return binHeight
 
     def calcExpectedValue(self):
+        '''
+        This function calculates the expected value of each slot.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        '''
         self.expectedValues = [0] * (Env.numPins - 1)
         for j in range(len(self.expectedValues)):
             binHeight = self.makeBinomialCombs(j + 1)
@@ -327,6 +473,15 @@ class Environment:
         pass
 
     def drawBall(self):
+        '''
+        This function draws the balls in the simulation environment.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        '''
         for ball in self.ballObjects:
             body = ball.body
             v = body.position + ball.offset.cpvrotate(body.rotation_vector)
@@ -335,6 +490,16 @@ class Environment:
             pygame.draw.circle(self.screen, self.Theme.ballColor, p, int(r))
     
     def drawPins(self):
+        '''
+        This function draws the pins in the simulation environment.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        '''
+
         for ball in self.pinObjects:
             body = ball.body
             v = body.position + ball.offset.cpvrotate(body.rotation_vector)
@@ -343,6 +508,15 @@ class Environment:
             pygame.draw.circle(self.screen, self.Theme.pinColor, p, int(r))
 
     def drawBoxes(self):
+        '''
+        This function draws the boxes in the simulation environment.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        '''
         for poly in self.worldObjects:
             body = poly.body
             ps = [p.rotated(body.angle) + body.position for p in poly.get_vertices()]
@@ -351,9 +525,17 @@ class Environment:
 
 
     def draw(self):        
-        #self.screen.fill(THECOLORS["black"])# Clear screen
+        '''
+        This function draws the simulation environment.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        '''
         self.screen.fill(self.Theme.bgColor)# Clear screen
-        #self.space.debug_draw(self.draw_options)# Draw space
+
         self.drawBall()
         self.drawPins()
         self.drawBoxes()
@@ -364,6 +546,15 @@ class Environment:
         pygame.display.flip()#flip the display buffer
 
     def displayBins(self):
+        '''
+        This function displays the binomial distribution of the simulation environment.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        '''
         if self.binDisplay == False:
             return
         binStartX = int(Env.worldX + Env.boundaryThickness)
@@ -373,6 +564,15 @@ class Environment:
         pass
 
     def displayStats(self):
+        '''
+        This function displays the statistics of the simulation environment.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        '''
         self.screen.blit(self.fontTitle.render( f'PlinkoStat', 1, self.Theme.titleColor), (130, 20))
         self.screen.blit(self.font.render( f'Sample Expected Value: {self.sampleExpectedValue:.2f}', 1, self.Theme.textColor), self.statsPos)
         self.screen.blit(self.font.render(f'Expected Value (slot {Env.dropSlot}): {self.expectedValues[Env.dropSlot -1 ]:.2f} | Best Slot: {np.argmax(self.expectedValues)}' , 1, self.Theme.textColor), self.statsPos + (0, 25))
@@ -386,7 +586,16 @@ class Environment:
             else:
                 self.screen.blit(self.font.render(f'{i}' , 1, self.Theme.textLightColor), ((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-0.5)) , Env.pinStartY + Env.boundaryThickness - 30))
 
-    def runWorld(self): 
+    def runWorld(self):
+        '''
+        This function runs the simulation environment.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        ''' 
         clock = pygame.time.Clock()  
         self.prevTime = time.time()
         UIRefereshRate = 15/1000.0   
@@ -394,17 +603,7 @@ class Environment:
             for event in pygame.event.get():
                 if event.type == QUIT or (event.type == KEYDOWN and event.key in (K_q, K_ESCAPE)):
                     sys.exit(0)
-                elif event.type == KEYDOWN and event.key == K_p:
-                    self.gamePaused = not self.gamePaused
-                elif event.type == KEYDOWN and event.key == K_r:
-                    self.initialize()
-                    self.draw()
-                elif event.type == KEYDOWN and event.key == K_w:
-                    #speed up
-                    self.timeScale = min(3, self.timeScale*1.25)
-                elif event.type == KEYDOWN and event.key == K_s:
-                    #slow down
-                    self.timeScale = max(0.5, self.timeScale/1.25)
+
                 elif event.type == pygame_gui.UI_BUTTON_PRESSED:
                     if event.ui_element == self.startButton:
                         if self.valuesInput.text:
@@ -417,6 +616,7 @@ class Environment:
                             value_list = random.choices([100, 500, 1000, 0, 10000, 0, 1000, 500, 100], k=Env.numPins -1)
                         self.initialize(int(self.slotInput.selected_option), int(self.levelInput.selected_option), int(self.numBallsNumber.text), value_list, self.timeScale, False)
                         self.draw()
+
                     elif event.ui_element == self.pauseButton:
                         self.gamePaused = not self.gamePaused
                         if self.gamePaused:
@@ -427,9 +627,11 @@ class Environment:
                     elif event.ui_element == self.fastButton:
                         self.timeScale = min(5, self.timeScale+0.25)
                         self.speedText.set_text(f'{self.timeScale:.2f}' + "x")
+
                     elif event.ui_element == self.slowButton:
                         self.timeScale = max(0.5, self.timeScale-0.25)
                         self.speedText.set_text(f'{self.timeScale:.2f}' + "x")
+
                     elif event.ui_element == self.plotButton:
                         import matplotlib.pyplot as plt
                         fig, ax = plt.subplots(1,2, figsize=(15,6))
@@ -449,6 +651,7 @@ class Environment:
                         ax2.set(xlabel='Slot Number', ylabel='Expected Value')
 
                         plt.show()
+
                     elif event.ui_element == self.showBins:
                         self.binDisplay = not self.binDisplay
                         if self.binDisplay:
@@ -507,6 +710,15 @@ class Environment:
             clock.tick(self.fps*self.timeScale)
 
     def calcSampleExpectedValue(self):
+        '''
+        This function calculates the sample expected value of the simulation environment.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        '''
         if Env.numBalls - self.maxBalls == 0:
             return 0
         sampleExpectedValue = 0

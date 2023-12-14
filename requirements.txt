@@ -1,2 +1,6 @@
+matplotlib==3.7.1
+numpy==1.24.2
 pygame==2.5.2
+pygame_ce==2.3.2
+pygame_gui==0.6.9
 pymunk==6.6.0
