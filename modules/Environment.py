@@ -640,7 +640,7 @@ class Environment:
                         ax1.plot([self.expectedValues[Env.dropSlot -1 ]]*len(self.timeListSampleExpectedValue), label = 'true')
                         ax1.legend()
                         ax1.title.set_text("Comparision of Sample and True Expected Value with Time")
-                        ax1.set(xlabel='time in sec', ylabel='Expected Value')
+                        ax1.set(xlabel='Number of Balls', ylabel='Expected Value')
 
                         ax2 = plt.subplot(1,2,2)
                         ax2.bar(range(1, len(self.expectedValues)+1), self.expectedValues)
