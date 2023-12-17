@@ -209,10 +209,13 @@ class Environment:
             None
         '''
         self.setTheme()
+        self.plotButton.disable()
         self.ballRadius = Env.ballSize
         self.pinLevels = pinLevels
         Env.numBalls = numBalls
-        self.timeScale = timeScale
+        if not hasattr(self, 'timescale'):
+            self.timeScale = timeScale
+            
         pymunk.pygame_util.positive_y_is_up = False #NOTE: Pymunk physics coordinates normally start from the lower right-hand corner of the screen. This line makes it the opposite (coordinates 0,0 begin at the top left corner of the screen)      
         self.boundaryObjects = []
         self.worldObjects = []
@@ -446,9 +449,9 @@ class Environment:
         for i, x in enumerate(combs):
             if drop + i >= 0 and drop + i < Env.numPins - 1:
                 binHeight[drop + i] += x
-            elif dropSlot - self.pinLevels//2 + i < 0:
+            elif drop + i < 0:
                 binHeight[-(drop + i) - 1] += x
-            elif dropSlot - self.pinLevels//2 + i >= Env.numPins - 1:
+            elif drop + i >= Env.numPins - 1:
                 binHeight[2*(Env.numPins -1)  - (drop + i) - 1] += x
         binHeight = [float(i)/sum(binHeight) for i in binHeight]
         return binHeight
