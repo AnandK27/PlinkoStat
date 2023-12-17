@@ -1,4 +1,4 @@
-# PlinkoStat : Statitics of a Plinko Board (ECE 225A)
+# PlinkoStat: Statistics of a Plinko Board (ECE 225A)
 
  ### Authors
  - Anand Kumar 
