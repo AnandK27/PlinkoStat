@@ -215,7 +215,7 @@ class Environment:
         Env.numBalls = numBalls
         if not hasattr(self, 'timescale'):
             self.timeScale = timeScale
-            
+
         pymunk.pygame_util.positive_y_is_up = False #NOTE: Pymunk physics coordinates normally start from the lower right-hand corner of the screen. This line makes it the opposite (coordinates 0,0 begin at the top left corner of the screen)      
         self.boundaryObjects = []
         self.worldObjects = []
@@ -576,7 +576,7 @@ class Environment:
         '''
         self.screen.blit(self.fontTitle.render( f'PlinkoStat', 1, self.Theme.titleColor), (130, 20))
         self.screen.blit(self.font.render( f'Sample Expected Value: {self.sampleExpectedValue:.2f}', 1, self.Theme.textColor), self.statsPos)
-        self.screen.blit(self.font.render(f'Expected Value (slot {Env.dropSlot}): {self.expectedValues[Env.dropSlot -1 ]:.2f} | Best Slot: {np.argmax(self.expectedValues)}' , 1, self.Theme.textColor), self.statsPos + (0, 25))
+        self.screen.blit(self.font.render(f'Expected Value (slot {Env.dropSlot}): {self.expectedValues[Env.dropSlot -1 ]:.2f} | Best Slot: {np.argmax(self.expectedValues)+1}' , 1, self.Theme.textColor), self.statsPos + (0, 25))
         for i in range(1,len(self.infoString)):
             self.screen.blit(self.font.render(self.infoString[i], 1, self.Theme.textColor), ((Env.worldX + Env.boundaryThickness + Env.pinWidthGap*(i-0.5)) , Env.screenHeight - Env.slotHeight - Env.boundaryThickness))
             text = self.font.render(str(self.values[i-1]), 1, self.Theme.textHighlightColor) 
